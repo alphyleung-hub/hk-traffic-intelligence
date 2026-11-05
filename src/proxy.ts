@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { isNewVisit, visitDay } from "@/lib/visit-day"
-import { recordPageView } from "@/lib/visits"
+//import { recordPageView } from "@/lib/visits"
 
 const DAY_SECONDS = 60 * 60 * 36
 
