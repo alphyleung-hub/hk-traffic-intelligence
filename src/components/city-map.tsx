@@ -2,44 +2,17 @@
 
 import { useEffect, useRef, useState, type MutableRefObject } from "react"
 import {
-  GeoJSONSource,
-  GeolocateControl,
-  GPUInitializationError,
-  Map,
-  NavigationControl,
-  Popup,
-  setWorkerUrl,
-  type ErrorEvent,
-  type LngLat,
-  type MapGeoJSONFeature,
-  type MapMouseEvent,
-  type StyleSpecification,
+  GeoJSONSource, GeolocateControl, GPUInitializationError, Map, NavigationControl, Popup, setWorkerUrl,
+  type ErrorEvent, type LngLat, type MapGeoJSONFeature, type MapMouseEvent, type StyleSpecification,
 } from "maplibre-gl"
 import "maplibre-gl/dist/maplibre-gl.css"
 import { useI18n } from "@/components/locale"
 import {
-  approachPopup,
-  kerbPopup,
-  cameraPopup,
-  controlPointPopup,
-  kmbStopPopup,
-  citybusStopPopup,
-  ferryStopPopup,
-  gmbStopPopup,
-  lrtStationPopup,
-  nlbStopPopup,
-  mtrBusStopPopup,
-  meterPopup,
-  chargerPopup,
-  parkingPopup,
-  lrtTrainPopup,
-  corridorPopup,
-  incidentPopup,
-  speedCamPopup,
-  stationPopup,
-  tollPopup,
-  trainPopup,
-  workPopup,
+  approachPopup, kerbPopup, cameraPopup, controlPointPopup, kmbStopPopup,
+  citybusStopPopup, ferryStopPopup, gmbStopPopup, lrtStationPopup, nlbStopPopup,
+  mtrBusStopPopup, meterPopup, chargerPopup, parkingPopup, lrtTrainPopup,
+  corridorPopup, incidentPopup, speedCamPopup, stationPopup, tollPopup,
+  trainPopup, workPopup, transLinkVehiclePopup,
 } from "@/components/map-cards"
 import { BUILDINGS_FLYOVER_ZOOM, FLYOVER_END_ZOOM, focusZoom, mapViewKey, placePinZoom } from "@/lib/kmb-view"
 import { type MeterPole } from "@/lib/meter-poles"
@@ -58,63 +31,37 @@ import { OPENING_SETTLE_MS, openingTour, roadsAreDrawn } from "@/lib/opening-tou
 import { advanceRuns, mergeRuns, runCollection, runsFromTrains, type TrainRun } from "@/lib/mtr-run"
 import type { ApproachPoint, Basemap, CitybusResponse, Corridor, FerryResponse, GmbResponse, HarbourJourney, KmbResponse, LrtResponse, MtrResponse, NlbResponse, PictureResponse, SpeedBand, WatchLayer, WatchLayers } from "@/lib/types"
 import {
-  busStopCollection,
-  chargerCollection,
-  COUNT_MIN_ZOOM,
-  emptyCollection,
-  ferryPierCollection,
-  kerbCollection,
-  kmbStopCollection,
-  LABEL_MIN_ZOOM,
-  layerIds,
-  meterCollection,
-  mountDataLayers,
-  motorcycleCollection,
-  parkingCollection,
-  platedStations,
-  VEHICLE_LABEL_MIN_ZOOM,
-  withFerryMarks,
-  withTrainMarks,
+  busStopCollection, chargerCollection, COUNT_MIN_ZOOM, emptyCollection, ferryPierCollection,
+  kerbCollection, kmbStopCollection, LABEL_MIN_ZOOM, layerIds, meterCollection, mountDataLayers,
+  motorcycleCollection, parkingCollection, platedStations, VEHICLE_LABEL_MIN_ZOOM,
+  withFerryMarks, withTrainMarks,
 } from "@/components/map-draw"
 
-// Turbopack rewrites MapLibre's own worker URL into a chunk the worker cannot run.
 setWorkerUrl("/maplibre/maplibre-gl-worker.mjs")
 
 const BAND_COLOR: Record<SpeedBand, string> = {
-  free: "#3DDC97",
-  slow: "#FFC857",
-  congested: "#FF5D73",
-  unknown: "#C9D2DC",
+  free: "#3DDC97", slow: "#FFC857", congested: "#FF5D73", unknown: "#C9D2DC",
 }
 
 const OPENING = {
-  center: [114.175, 22.293] as [number, number],
-  zoom: 12.55,
-  pitch: 58,
-  bearing: -20,
+  center: [-123.1207, 49.2827] as [number, number],
+  zoom: 11.5,
+  pitch: 45,
+  bearing: -15,
 }
 
-// Halfway between the city view and the close view. Stop names stay at the close view.
-
-function narrowScreen(): boolean {
-  return window.matchMedia("(max-width: 760px)").matches
-}
-
+function narrowScreen(): boolean { return window.matchMedia("(max-width: 760px)").matches }
 function iosWebKit(): boolean {
   const agent = navigator.userAgent
   const touchMac = navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1
   return /iPhone|iPad|iPod/.test(agent) || touchMac
 }
-
 function mapPixelRatio(): number {
   const ratio = window.devicePixelRatio || 1
   if (narrowScreen()) return Math.min(ratio, 2)
   return ratio
 }
 
-// OSM Bright and OSM Liberty. The files in those repositories call a keyed
-// MapTiler endpoint. OpenFreeMap publishes the same styles against its planet
-// tiles, which is the source this map already uses.
 const STREET_STYLE = "https://tiles.openfreemap.org/styles/bright"
 const BUILDINGS_STYLE = "https://tiles.openfreemap.org/styles/liberty"
 
@@ -125,19 +72,13 @@ function satelliteStyle(): StyleSpecification {
       imagery: {
         type: "raster",
         tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
-        // Esri's picture is 256 px. A 512 px tile stretches that picture and the
-        // phone keeps the coarser zoom.
         tileSize: 256,
-        // Hong Kong imagery is real through zoom 19. Zoom 20 and above is Esri's
-        // gray "Map Data Not Yet Available" tile, so the map scales the zoom 19 picture.
         maxzoom: 19,
         attribution: MAP_CREDIT.esri,
       },
       labels: {
         type: "raster",
-        tiles: [
-          "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
-        ],
+        tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"],
         tileSize: 256,
       },
     },
@@ -150,70 +91,36 @@ function satelliteStyle(): StyleSpecification {
 
 function basemapStyle(basemap: Basemap): string | StyleSpecification {
   switch (basemap) {
-    case "street":
-      return STREET_STYLE
-    case "buildings":
-      return BUILDINGS_STYLE
-    case "satellite":
-      return satelliteStyle()
-    default: {
-      const exhaustive: never = basemap
-      return exhaustive
-    }
+    case "street": return STREET_STYLE
+    case "buildings": return BUILDINGS_STYLE
+    case "satellite": return satelliteStyle()
+    default: { const exhaustive: never = basemap; return exhaustive }
   }
 }
 
 function basemapCamera(map: Map, basemap: Basemap): { pitch: number; bearing: number; zoom?: number; duration: number } {
   const phone = narrowScreen()
   switch (basemap) {
-    case "street":
-      return { pitch: 0, bearing: 0, duration: phone ? 200 : 650 }
-    case "satellite":
-      return { pitch: OPENING.pitch, bearing: OPENING.bearing, duration: phone ? 200 : 650 }
-    case "buildings":
-      return {
-        pitch: phone ? 46 : 64,
-        bearing: -18,
-        zoom: Math.max(map.getZoom(), phone ? 14.05 : 15.4),
-        duration: phone ? 200 : 800,
-      }
-    default: {
-      const exhaustive: never = basemap
-      return exhaustive
-    }
+    case "street": return { pitch: 0, bearing: 0, duration: phone ? 200 : 650 }
+    case "satellite": return { pitch: OPENING.pitch, bearing: OPENING.bearing, duration: phone ? 200 : 650 }
+    case "buildings": return { pitch: phone ? 46 : 64, bearing: -18, zoom: Math.max(map.getZoom(), phone ? 14.05 : 15.4), duration: phone ? 200 : 800 }
+    default: { const exhaustive: never = basemap; return exhaustive }
   }
 }
 
 function tourCamera(step: (typeof FLYOVER)[number], basemap: Basemap) {
   switch (basemap) {
-    case "street":
-      return { ...step, pitch: 0, bearing: 0 }
-    case "satellite":
-      return step
-    case "buildings":
-      return { ...step, zoom: Math.max(step.zoom, BUILDINGS_FLYOVER_ZOOM), pitch: Math.max(step.pitch, 60) }
-    default: {
-      const exhaustive: never = basemap
-      return exhaustive
-    }
+    case "street": return { ...step, pitch: 0, bearing: 0 }
+    case "satellite": return step
+    case "buildings": return { ...step, zoom: Math.max(step.zoom, BUILDINGS_FLYOVER_ZOOM), pitch: Math.max(step.pitch, 60) }
+    default: { const exhaustive: never = basemap; return exhaustive }
   }
 }
-
-const FLYOVER = [
-  { center: [114.148, 22.3] as [number, number], zoom: 12.7, pitch: 60, bearing: -8, duration: 7000, curve: 1.25 },
-  { center: [114.21, 22.3] as [number, number], zoom: 12.55, pitch: 54, bearing: 18, duration: 7600, curve: 1.25 },
-  { center: [114.178, 22.292] as [number, number], zoom: FLYOVER_END_ZOOM, pitch: 52, bearing: -12, duration: 7200, curve: 1.2 },
-]
+const FLYOVER: any[] = []
 
 const WATCH_HITS = ["approach-times", "incidents", "cameras-harbour", "cameras-portal", "cameras-city", "speed-cams", "works", "tolls-portal", "tolls-overview", "control-points", "mtr-stations", "mtr-station-label", "mtr-trains", "mtr-train-label", "kmb-stops", "kmb-stop-label", "lrt-stations", "lrt-station-label", "lrt-trains", "lrt-train-label", "citybus-stops", "citybus-stop-label", "gmb-stops", "gmb-stop-label", "nlb-stops", "nlb-stop-label", "mtrbus-stops", "mtrbus-stop-label", "ferry-piers", "ferry-pier-label", "ferry-vessels", "ferry-vessel-label", "parking", "parking-label", "motorcycle", "motorcycle-label", "kerb", "kerb-label", "meters", "meters-label", "chargers", "chargers-label"]
 
-type AnimLine = {
-  coords: [number, number][]
-  cum: number[]
-  band: SpeedBand
-  speed: number
-}
-
+type AnimLine = { coords: [number, number][]; cum: number[]; band: SpeedBand; speed: number }
 type Particle = { line: number; t: number }
 
 type CityMapProps = {
@@ -237,6 +144,7 @@ type CityMapProps = {
   kerbs: { id: string; streetTc: string; streetEn: string; lng: number; lat: number; bays: number }[] | null
   meters: MeterPole[] | null
   chargers: ChargerPlace[] | null
+  transLinkVehicles: any[] | null
   onView: (view: { lng: number; lat: number; zoom: number }) => void
   layers: WatchLayers
   basemap: Basemap
@@ -247,40 +155,13 @@ type CityMapProps = {
 }
 
 const PILL: Record<HarbourJourney["colour"], string> = {
-  red: "#FF5D73",
-  amber: "#FFC857",
-  green: "#3DDC97",
-  none: "#C9D2DC",
+  red: "#FF5D73", amber: "#FFC857", green: "#3DDC97", none: "#C9D2DC",
 }
 
 export function CityMap({
-  corridors,
-  approaches,
-  picture,
-  speedCams,
-  incidents,
-  controlPoints,
-  mtr,
-  mtrStations,
-  kmb,
-  lrt,
-  citybus,
-  gmb,
-  nlb,
-  mtrBus,
-  ferry,
-  parking,
-  motorcycles,
-  kerbs,
-  meters,
-  chargers,
-  onView,
-  layers,
-  basemap,
-  flyToken,
-  focus,
-  onMap,
-  disabled = false,
+  corridors, approaches, picture, speedCams, incidents, controlPoints, mtr, mtrStations,
+  kmb, lrt, citybus, gmb, nlb, mtrBus, ferry, parking, motorcycles, kerbs, meters, chargers,
+  transLinkVehicles, onView, layers, basemap, flyToken, focus, onMap, disabled = false,
 }: CityMapProps) {
   const { locale, messages } = useI18n()
   const copyRef = useRef(messages)
@@ -306,6 +187,9 @@ export function CityMap({
   const appliedBasemap = useRef<Basemap | null>(null)
   const restoreOverlaysRef = useRef<(() => void) | null>(null)
   const styleToken = useRef(0)
+  
+  const vehicleTargetsRef = useRef<Record<string, any>>({})
+
   const [mapReady, setMapReady] = useState(false)
   const [styleEpoch, setStyleEpoch] = useState(0)
   const [gpuFailed, setGpuFailed] = useState(false)
@@ -332,13 +216,8 @@ export function CityMap({
     publishCorridors(map, corridors, linesRef, particlesRef, copyRef.current)
   }, [corridors, locale, styleEpoch])
 
-  useEffect(() => {
-    onMapRef.current = onMap
-  }, [onMap])
-
-  useEffect(() => {
-    onViewRef.current = onView
-  }, [onView])
+  useEffect(() => { onMapRef.current = onMap }, [onMap])
+  useEffect(() => { onViewRef.current = onView }, [onView])
 
   useEffect(() => {
     const map = mapRef.current
@@ -365,52 +244,29 @@ export function CityMap({
 
   useEffect(() => {
     mtrRef.current = mtr
-    if (!mtr?.ok) {
-      runsRef.current = []
-      return
-    }
+    if (!mtr?.ok) { runsRef.current = []; return }
     const now = Date.now()
-    runsRef.current = mergeRuns(
-      runsRef.current,
-      runsFromTrains(mtr.trains, stationPoint, (line) => lineRecord(line)?.color ?? "#5C6B7A", now),
-      now,
-      stationPoint,
-    )
+    runsRef.current = mergeRuns(runsRef.current, runsFromTrains(mtr.trains, stationPoint, (line) => lineRecord(line)?.color ?? "#5C6B7A", now), now, stationPoint)
   }, [mtr])
 
   useEffect(() => {
     lrtRef.current = lrt
-    if (!lrt?.ok) {
-      lrtRunsRef.current = []
-      return
-    }
+    if (!lrt?.ok) { lrtRunsRef.current = []; return }
     const now = Date.now()
-    lrtRunsRef.current = mergeRuns(
-      lrtRunsRef.current,
-      runsFromTrains(lrt.trains, lrtPoint, () => lrtColor(), now),
-      now,
-      lrtPoint,
-    )
+    lrtRunsRef.current = mergeRuns(lrtRunsRef.current, runsFromTrains(lrt.trains, lrtPoint, () => lrtColor(), now), now, lrtPoint)
   }, [lrt])
 
   useEffect(() => {
     ferryMotionRef.current = ferry?.ok ? syncFerryMotion(ferryMotionRef.current, ferry.vessels, Date.now()) : []
   }, [ferry])
 
-  useEffect(() => {
-    basemapRef.current = basemap
-  }, [basemap])
-
-  useEffect(() => {
-    onMapRef.current(!unavailable)
-  }, [unavailable])
+  useEffect(() => { basemapRef.current = basemap }, [basemap])
+  useEffect(() => { onMapRef.current(!unavailable) }, [unavailable])
 
   useEffect(() => {
     if (disabled) return
-
     const container = containerRef.current
     if (!container) return
-
     let active = true
     let map: Map
     try {
@@ -419,21 +275,14 @@ export function CityMap({
         pixelRatio: mapPixelRatio(),
         attributionControl: { compact: true },
         maxPitch: 72,
-        maxBounds: [
-          [113.62, 21.98],
-          [114.62, 22.72],
-        ],
+        maxBounds: [[-123.4, 49.0], [-122.5, 49.5]],
         style: satelliteStyle(),
         ...OPENING,
       })
     } catch (error) {
       if (!isGpuFailure(error)) throw error
-      queueMicrotask(() => {
-        if (active) setGpuFailed(true)
-      })
-      return () => {
-        active = false
-      }
+      queueMicrotask(() => { if (active) setGpuFailed(true) })
+      return () => { active = false }
     }
     map.addControl(new NavigationControl({ visualizePitch: true }), "top-left")
     map.addControl(new GeolocateControl({
@@ -457,21 +306,62 @@ export function CityMap({
       map.remove()
     }
     map.on("error", (event: ErrorEvent & { sourceId?: string }) => {
-      if (isGpuFailure(event.error)) {
-        dropMap()
-        return
-      }
+      if (isGpuFailure(event.error)) { dropMap(); return }
       if (terrainFailed) return
-      if (event.sourceId === "terrain") {
-        terrainFailed = true
-        map.setTerrain(null)
-      }
+      if (event.sourceId === "terrain") { terrainFailed = true; map.setTerrain(null) }
     })
 
     const cards = popupOpener(map)
     closeCardRef.current = cards.close
     const restoreOverlays = () => {
       mountDataLayers(map)
+      
+      if (!map.getSource("incidents")) {
+        map.addSource("incidents", { type: "geojson", data: incidents ?? emptyCollection() })
+        map.addLayer({
+          id: "incidents-layer",
+          type: "circle",
+          source: "incidents",
+          paint: {
+            "circle-radius": 6,
+            "circle-color": ["get", "color"],
+            "circle-stroke-color": "#ffffff",
+            "circle-stroke-width": 1.5,
+          }
+        })
+      }
+
+      if (!map.getSource("translink-vehicles")) {
+        map.addSource("translink-vehicles", { type: "geojson", data: { type: "FeatureCollection", features: [] } })
+        
+        // 1. Buses (White with dark outline)
+        map.addLayer({
+          id: "translink-buses-layer",
+          type: "circle",
+          source: "translink-vehicles",
+          filter: ["!", ["in", ["get", "route"], ["literal", ["30053", "30052", "13686", "6771", "6770"]]]],
+          paint: { "circle-radius": 5, "circle-color": "#ffffff", "circle-stroke-color": "#333333", "circle-stroke-width": 2 }
+        })
+
+        // 2. SkyTrains (Blue)
+        map.addLayer({
+          id: "translink-trains-layer",
+          type: "circle",
+          source: "translink-vehicles",
+          filter: ["in", ["get", "route"], ["literal", ["30053", "30052", "13686"]]],
+          paint: { "circle-radius": 8, "circle-color": "#007C9F", "circle-stroke-color": "#ffffff", "circle-stroke-width": 2 }
+        })
+
+        // 3. SeaBus (Orange)
+        map.addLayer({
+          id: "translink-seabus-layer",
+          type: "circle",
+          source: "translink-vehicles",
+          filter: ["==", ["get", "route"], "6771"],
+          paint: { "circle-radius": 9, "circle-color": "#F59E0B", "circle-stroke-color": "#ffffff", "circle-stroke-width": 2.5 }
+        })
+      }
+
       bindOverlayClicks(map, cards.show, copyRef, approachesRef, mtrRef, lrtRef)
       holdDataCreditOpen(map)
     }
@@ -489,15 +379,10 @@ export function CityMap({
     let frame = 0
     let last = performance.now()
     let drewParticles = false
-    // iOS Safari stops requestAnimationFrame on a WebGL page it considers idle,
-    // and a GeoJSON push every frame aborts the tile reload before the dot moves.
     const ios = iosWebKit()
     const pushGap = motionGap(ios)
     const gates: Record<"particles" | "mtr" | "lrt" | "ferry", PushGate> = {
-      particles: { busy: false, at: 0 },
-      mtr: { busy: false, at: 0 },
-      lrt: { busy: false, at: 0 },
-      ferry: { busy: false, at: 0 },
+      particles: { busy: false, at: 0 }, mtr: { busy: false, at: 0 }, lrt: { busy: false, at: 0 }, ferry: { busy: false, at: 0 },
     }
     let keep: HTMLDivElement | null = null
     if (ios) {
@@ -518,9 +403,7 @@ export function CityMap({
         if (particles && particlesMoving) {
           advanceParticles(linesRef.current, particlesRef.current, dt)
           const moving = particleFeatures(linesRef.current, particlesRef.current)
-          if (ios) {
-            if (pushDue(gates.particles, now, pushGap)) pushMovingSource(particles, gates.particles, moving, now, pushGap)
-          } else particles.setData(moving)
+          if (ios) { if (pushDue(gates.particles, now, pushGap)) pushMovingSource(particles, gates.particles, moving, now, pushGap) } else particles.setData(moving)
           drewParticles = true
         } else if (particles && drewParticles) {
           particles.setData(emptyCollection())
@@ -557,10 +440,7 @@ export function CityMap({
         }
       }
     }
-    const tick = () => {
-      step()
-      frame = requestAnimationFrame(tick)
-    }
+    const tick = () => { step(); frame = requestAnimationFrame(tick) }
     frame = requestAnimationFrame(tick)
     const pulse = ios ? window.setInterval(step, PUSH_GAP_MS) : 0
 
@@ -570,10 +450,7 @@ export function CityMap({
       if (pulse) window.clearInterval(pulse)
       keep?.remove()
       readyRef.current = false
-      if (!removed) {
-        removed = true
-        map.remove()
-      }
+      if (!removed) { removed = true; map.remove() }
       mapRef.current = null
       restoreOverlaysRef.current = null
       closeCardRef.current = null
@@ -584,9 +461,7 @@ export function CityMap({
     const map = mapRef.current
     if (disabled || !map || !mapReady) return
     let cancelled = false
-    const cancel = () => {
-      cancelled = true
-    }
+    const cancel = () => { cancelled = true }
     cancelFlyRef.current = cancel
     const timeouts: number[] = []
     const readyAt = performance.now()
@@ -610,19 +485,10 @@ export function CityMap({
       const automatic = flyToken === 0
       const decision = openingTour(automatic, roadsAreDrawn(corridorsRef.current), performance.now() - readyAt)
       switch (decision) {
-        case "wait":
-          timeouts.push(window.setTimeout(watch, 200))
-          return
-        case "settle":
-          timeouts.push(window.setTimeout(run, OPENING_SETTLE_MS))
-          return
-        case "now":
-          timeouts.push(window.setTimeout(run, automatic ? 0 : OPENING_SETTLE_MS))
-          return
-        default: {
-          const exhaustive: never = decision
-          return exhaustive
-        }
+        case "wait": timeouts.push(window.setTimeout(watch, 200)); return
+        case "settle": timeouts.push(window.setTimeout(run, OPENING_SETTLE_MS)); return
+        case "now": timeouts.push(window.setTimeout(run, automatic ? 0 : OPENING_SETTLE_MS)); return
+        default: { const exhaustive: never = decision; return exhaustive }
       }
     }
     if (!(flyToken === 0 && (narrowScreen() || reducedMotion()))) watch()
@@ -652,10 +518,7 @@ export function CityMap({
 
   useEffect(() => {
     const map = mapRef.current
-    if (!mapReady) {
-      appliedBasemap.current = null
-      return
-    }
+    if (!mapReady) { appliedBasemap.current = null; return }
     if (disabled || !map) return
     if (appliedBasemap.current === basemap) return
     const first = appliedBasemap.current === null
@@ -688,13 +551,11 @@ export function CityMap({
       const label = messages.minutes(minutes)
       const icon = approachIconId(colour, label)
       ensureApproachIcon(map, icon, label, PILL[colour])
-      return [
-        {
-          type: "Feature" as const,
-          properties: { id: point.id, icon },
-          geometry: { type: "Point" as const, coordinates: point.coordinates },
-        },
-      ]
+      return [{
+        type: "Feature" as const,
+        properties: { id: point.id, icon },
+        geometry: { type: "Point" as const, coordinates: point.coordinates },
+      }]
     })
     geoJsonSource(map, "approaches")?.setData({ type: "FeatureCollection", features })
   }, [approaches, disabled, mapReady, locale, messages, styleEpoch])
@@ -713,10 +574,11 @@ export function CityMap({
     geoJsonSource(map, "speed-cams")?.setData(speedCams ?? emptyCollection())
   }, [disabled, mapReady, speedCams, styleEpoch])
 
+  // Render DriveBC Incidents
   useEffect(() => {
     const map = mapRef.current
     if (disabled || !map || !mapReady) return
-    geoJsonSource(map, "incidents")?.setData(incidents ? incidentPoints(incidents) : emptyCollection())
+    geoJsonSource(map, "incidents")?.setData(incidents ?? emptyCollection())
   }, [disabled, incidents, mapReady, styleEpoch])
 
   useEffect(() => {
@@ -737,6 +599,52 @@ export function CityMap({
     if (!layers.lrt) geoJsonSource(map, "lrt-trains")?.setData(emptyCollection())
   }, [disabled, layers.lrt, mapReady, styleEpoch])
 
+  // Update the targets when new data arrives
+  useEffect(() => {
+    if (!transLinkVehicles) return
+    const newTargets: Record<string, any> = {}
+    transLinkVehicles.forEach(v => {
+      const existing = vehicleTargetsRef.current[v.id]
+      newTargets[v.id] = { ...v, currentLon: existing ? existing.currentLon : v.lon, currentLat: existing ? existing.currentLat : v.lat }
+    })
+    vehicleTargetsRef.current = newTargets
+  }, [transLinkVehicles])
+
+  // The continuous animation loop
+  useEffect(() => {
+    const map = mapRef.current
+    if (disabled || !map || !mapReady) return
+    const source = map.getSource("translink-vehicles") as any
+    if (!source) return
+    let animationFrame: number
+
+    const animate = () => {
+      Object.values(vehicleTargetsRef.current).forEach((v: any) => {
+        const dLon = v.lon - v.currentLon
+        const dLat = v.lat - v.currentLat
+        if (Math.abs(dLon) > 0.00001 || Math.abs(dLat) > 0.00001) {
+          v.currentLon += dLon * 0.05
+          v.currentLat += dLat * 0.05
+        } else {
+          v.currentLon = v.lon
+          v.currentLat = v.lat
+        }
+      })
+
+      const features = Object.values(vehicleTargetsRef.current).map((v: any) => ({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [v.currentLon, v.currentLat] },
+        properties: { id: v.id, route: v.route, speed: v.speed }
+      }))
+
+      source.setData({ type: "FeatureCollection", features })
+      animationFrame = requestAnimationFrame(animate)
+    }
+
+    animate()
+    return () => cancelAnimationFrame(animationFrame)
+  }, [disabled, mapReady, styleEpoch])
+
   useEffect(() => {
     const map = mapRef.current
     if (disabled || !map || !mapReady) return
@@ -747,9 +655,7 @@ export function CityMap({
     }
     paint()
     map.on("zoomend", paint)
-    return () => {
-      map.off("zoomend", paint)
-    }
+    return () => { map.off("zoomend", paint) }
   }, [disabled, kmb, layers.kmb, locale, mapReady, styleEpoch])
 
   useEffect(() => {
@@ -762,9 +668,7 @@ export function CityMap({
     }
     paint()
     map.on("zoomend", paint)
-    return () => {
-      map.off("zoomend", paint)
-    }
+    return () => { map.off("zoomend", paint) }
   }, [citybus, disabled, layers.citybus, locale, mapReady, styleEpoch])
 
   useEffect(() => {
@@ -777,9 +681,7 @@ export function CityMap({
     }
     paint()
     map.on("zoomend", paint)
-    return () => {
-      map.off("zoomend", paint)
-    }
+    return () => { map.off("zoomend", paint) }
   }, [disabled, gmb, layers.gmb, locale, mapReady, styleEpoch])
 
   useEffect(() => {
@@ -792,9 +694,7 @@ export function CityMap({
     }
     paint()
     map.on("zoomend", paint)
-    return () => {
-      map.off("zoomend", paint)
-    }
+    return () => { map.off("zoomend", paint) }
   }, [disabled, layers.nlb, locale, mapReady, nlb, styleEpoch])
 
   useEffect(() => {
@@ -807,9 +707,7 @@ export function CityMap({
     }
     paint()
     map.on("zoomend", paint)
-    return () => {
-      map.off("zoomend", paint)
-    }
+    return () => { map.off("zoomend", paint) }
   }, [disabled, layers.mtrbus, locale, mapReady, mtrBus, styleEpoch])
 
   useEffect(() => {
@@ -826,9 +724,7 @@ export function CityMap({
     }
     paint()
     map.on("zoomend", paint)
-    return () => {
-      map.off("zoomend", paint)
-    }
+    return () => { map.off("zoomend", paint) }
   }, [disabled, ferry, layers.ferry, locale, mapReady, styleEpoch])
 
   useEffect(() => {
@@ -864,9 +760,7 @@ export function CityMap({
     }
     paint()
     map.on("zoomend", paint)
-    return () => {
-      map.off("zoomend", paint)
-    }
+    return () => { map.off("zoomend", paint) }
   }, [chargers, disabled, layers.charger, layers.motorcycle, layers.parking, locale, mapReady, motorcycles, parking, styleEpoch])
 
   useEffect(() => {
@@ -882,9 +776,7 @@ export function CityMap({
     }
     paint()
     map.on("zoomend", paint)
-    return () => {
-      map.off("zoomend", paint)
-    }
+    return () => { map.off("zoomend", paint) }
   }, [disabled, kerbs, layers.kerb, locale, mapReady, styleEpoch])
 
   useEffect(() => {
@@ -901,9 +793,7 @@ export function CityMap({
     }
     paint()
     map.on("zoomend", paint)
-    return () => {
-      map.off("zoomend", paint)
-    }
+    return () => { map.off("zoomend", paint) }
   }, [disabled, layers.meter, locale, mapReady, meters, styleEpoch])
 
   useEffect(() => {
@@ -919,9 +809,7 @@ export function CityMap({
     }
     paint()
     map.on("zoomend", paint)
-    return () => {
-      map.off("zoomend", paint)
-    }
+    return () => { map.off("zoomend", paint) }
   }, [disabled, locale, mapReady, mtrStations, styleEpoch])
 
   useEffect(() => {
@@ -961,16 +849,10 @@ export function CityMap({
 
   function basemapTitle(mode: Basemap): string {
     switch (mode) {
-      case "street":
-        return messages.openStreet
-      case "satellite":
-        return messages.satelliteMap
-      case "buildings":
-        return messages.buildingsMap
-      default: {
-        const exhaustive: never = mode
-        return exhaustive
-      }
+      case "street": return messages.openStreet
+      case "satellite": return messages.satelliteMap
+      case "buildings": return messages.buildingsMap
+      default: { const exhaustive: never = mode; return exhaustive }
     }
   }
 
@@ -983,16 +865,15 @@ export function CityMap({
         aria-label={basemapTitle(basemap)}
       />
       {unavailable ? (
-        <p
-          className="pointer-events-none absolute inset-x-6 z-[1] max-w-md text-sm leading-relaxed text-zinc-300"
-          style={{ top: "max(28%, calc(var(--map-control-top, 0px) + 1rem))" }}
-        >
+        <p className="pointer-events-none absolute inset-x-6 z-[1] max-w-md text-sm leading-relaxed text-zinc-300" style={{ top: "max(28%, calc(var(--map-control-top, 0px) + 1rem))" }}>
           {messages.mapFailed}
         </p>
       ) : null}
     </>
   )
 }
+
+// --- HELPER FUNCTIONS ---
 
 const creditShow = new WeakMap<HTMLElement, () => void>()
 const creditDragBound = new WeakSet<Map>()
@@ -1326,6 +1207,10 @@ function bindOverlayClicks(
     "meters-label": meterPopup,
     chargers: chargerPopup,
     "chargers-label": chargerPopup,
+    "translink-buses-layer": transLinkVehiclePopup,
+    "translink-trains-layer": transLinkVehiclePopup,
+    "translink-seabus-layer": transLinkVehiclePopup,
+    "incidents-layer": incidentPopup,
   }
   map.on("click", "approach-times", (event) => {
     const raw = event.features?.[0]?.properties?.id
@@ -1334,18 +1219,29 @@ function bindOverlayClicks(
     if (!point) return
     showPopup(event.lngLat, approachPopup(point, copyRef.current))
   })
+  
   for (const layerId of watchLayers) {
     const render = featurePopups[layerId]
     if (!render) continue
     map.on("click", layerId, (event) => openFeature(showPopup, event, (properties) => render(properties, copyRef.current), copyRef))
   }
-  for (const layerId of ["corridor-line", ...watchLayers]) {
-    map.on("mouseenter", layerId, () => {
-      map.getCanvas().style.cursor = "pointer"
-    })
-    map.on("mouseleave", layerId, () => {
-      map.getCanvas().style.cursor = ""
-    })
+  
+  map.on("click", "translink-buses-layer", (event) => {
+    openFeature(showPopup, event, (properties) => transLinkVehiclePopup(properties, copyRef.current), copyRef)
+  })
+  map.on("click", "translink-trains-layer", (event) => {
+    openFeature(showPopup, event, (properties) => transLinkVehiclePopup(properties, copyRef.current), copyRef)
+  })
+  map.on("click", "translink-seabus-layer", (event) => {
+    openFeature(showPopup, event, (properties) => transLinkVehiclePopup(properties, copyRef.current), copyRef)
+  })
+  map.on("click", "incidents-layer", (event) => {
+    openFeature(showPopup, event, (properties) => incidentPopup(properties, copyRef.current), copyRef)
+  })
+
+  for (const layerId of ["corridor-line", "translink-buses-layer", "translink-trains-layer", "translink-seabus-layer", "incidents-layer", ...watchLayers]) {
+    map.on("mouseenter", layerId, () => { map.getCanvas().style.cursor = "pointer" })
+    map.on("mouseleave", layerId, () => { map.getCanvas().style.cursor = "" })
   }
 }
 
@@ -1442,8 +1338,6 @@ function placeCard(map: Map, popup: Popup, element: HTMLElement, anchorLocked: b
     }
   }
   if (!anchorLocked) return false
-  // The snapshot loads after the tip is placed, and the tip shift is a percentage
-  // of the card. Slide the whole card until it sits in the open gap.
   let [ox, oy] = offsetPair(popup.options.offset)
   for (let pass = 0; pass < 3; pass += 1) {
     const box = element.getBoundingClientRect()
@@ -1522,7 +1416,6 @@ function cardLimits(map: Map): CardLimits {
       const onRight = box.left > mapBox.left + mapBox.width * 0.35
       if (!spansWidth && onRight) right = Math.min(right, box.left - 10)
       else if (box.height < 88) bottom = Math.min(bottom, box.top - 10)
-      // An open list fills the phone. The card draws above it so the snapshot stays readable.
     }
   }
   const root = map.getContainer()
@@ -1569,4 +1462,3 @@ function openFeature(
     })
   }
 }
-

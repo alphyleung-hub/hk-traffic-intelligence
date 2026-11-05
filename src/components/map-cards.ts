@@ -1,4 +1,5 @@
 import { facingWord, parsePlace, type CameraPlace } from "@/lib/camera-place"
+import routeNames from "@/lib/translink-routes.json";
 import {
   bandWord,
   controlName,
@@ -1058,4 +1059,33 @@ function numberProp(properties: GeoJSON.GeoJsonProperties, key: string): number 
 function textProp(properties: GeoJSON.GeoJsonProperties, key: string): string {
   const value = properties?.[key]
   return typeof value === "string" ? value : ""
+}
+
+// --- NEW VANCOUVER TRANSIT POPUP ---
+export function transLinkVehiclePopup(properties: GeoJSON.GeoJsonProperties, m: Messages): HTMLElement {
+  const routeId = textProp(properties, "route") || "Unknown"
+  const id = textProp(properties, "id") || "Unknown ID"
+  const speed = numberProp(properties, "speed")
+  
+  // Look up the real name in the JSON dictionary. If not found, fallback to the raw ID.
+  const routeName = (routeNames as Record<string, string>)[routeId] || routeId;
+
+  // Check if the route ID belongs to a rail service
+  const isRail = ["30053", "30052", "13686", "6771", "6770"].includes(routeId);
+  const cardKind = isRail ? "SkyTrain / Rail" : "Transit";
+
+  // Title is just the routeName now
+  const card = openCard(routeName, cardKind)
+  
+  card.body.append(fact("Vehicle ID", id))
+  
+  if (speed != null) {
+    // TransLink speed is in meters/second
+    const kmh = Math.round(speed * 3.6)
+    card.body.append(fact("Current Speed", `${kmh} km/h`))
+  } else {
+    card.body.append(fact("Current Speed", "N/A"))
+  }
+
+  return card.root
 }

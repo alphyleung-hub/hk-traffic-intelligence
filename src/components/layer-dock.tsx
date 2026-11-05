@@ -41,6 +41,8 @@ const SPEED_KEY = [
   { color: "#FF5D73", key: "bad" },
 ] as const
 
+
+
 export function layerLabel(id: WatchLayer, m: Messages): string {
   switch (id) {
     case "speed":
@@ -58,9 +60,9 @@ export function layerLabel(id: WatchLayer, m: Messages): string {
     case "control":
       return m.boundary
     case "mtr":
-      return m.mtr
+      return "Transit" // Changed from m.mtr
     case "kmb":
-      return m.kmbLwb
+      return "Buses" // Changed from m.kmbLwb
     case "lrt":
       return m.lrt
     case "citybus":
@@ -119,27 +121,28 @@ function dockIsNarrow(): boolean {
 
 const BASEMAPS: Basemap[] = ["satellite", "street", "buildings"]
 const COUNTED_LAYERS: ReadonlySet<WatchLayer> = new Set(["works", "incidents"])
+
 const LAYERS: { id: WatchLayer; swatch: string }[] = [
   { id: "speed", swatch: "bg-[#3DDC97]" },
-  { id: "cameras", swatch: "bg-[#7DD3E8]" },
-  { id: "speedcam", swatch: "bg-[#FB923C]" },
-  { id: "works", swatch: "bg-[#FF5D73]" },
-  { id: "tolls", swatch: "bg-[#E7FBFF]" },
   { id: "incidents", swatch: "bg-[#FF5D73]" },
-  { id: "control", swatch: "bg-[#D7B4FF]" },
-  { id: "mtr", swatch: "bg-[#E2231A]" },
-  { id: "lrt", swatch: "bg-[#f5c518]" },
-  { id: "kmb", swatch: "bg-[#9f1239]" },
-  { id: "citybus", swatch: "bg-[#f6c343]" },
-  { id: "gmb", swatch: "bg-[#65a30d]" },
-  { id: "nlb", swatch: "bg-[#0f766e]" },
-  { id: "mtrbus", swatch: "bg-[#166534]" },
-  { id: "ferry", swatch: "bg-[#0369a1]" },
-  { id: "parking", swatch: "bg-[#d97706]" },
-  { id: "motorcycle", swatch: "bg-[#7c3aed]" },
-  { id: "kerb", swatch: "bg-[#be185d]" },
-  { id: "meter", swatch: "bg-[#1d4ed8]" },
-  { id: "charger", swatch: "bg-[#0e7490]" },
+  { id: "works", swatch: "bg-[#FFC857]" },
+  { id: "mtr", swatch: "bg-[#E31837]" }, // TransLink Red
+  // { id: "cameras", swatch: "bg-[#7DD3E8]" },
+  // { id: "speedcam", swatch: "bg-[#FB923C]" },
+  // { id: "tolls", swatch: "bg-[#E7FBFF]" },
+  // { id: "control", swatch: "bg-[#D7B4FF]" },
+  // { id: "lrt", swatch: "bg-[#f5c518]" },
+  // { id: "kmb", swatch: "bg-[#9f1239]" },
+  // { id: "citybus", swatch: "bg-[#f6c343]" },
+  // { id: "gmb", swatch: "bg-[#65a30d]" },
+  // { id: "nlb", swatch: "bg-[#0f766e]" },
+  // { id: "mtrbus", swatch: "bg-[#166534]" },
+  // { id: "ferry", swatch: "bg-[#0369a1]" },
+  // { id: "parking", swatch: "bg-[#d97706]" },
+  // { id: "motorcycle", swatch: "bg-[#7c3aed]" },
+  // { id: "kerb", swatch: "bg-[#be185d]" },
+  // { id: "meter", swatch: "bg-[#1d4ed8]" },
+  // { id: "charger", swatch: "bg-[#0e7490]" },
 ]
 
 export function LayerDock(props: LayerDockProps) {

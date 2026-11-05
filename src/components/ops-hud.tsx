@@ -11,15 +11,8 @@ import { crossingsFrom, nearestApproach } from "@/lib/crossings"
 import { displayText, formatClock, LOCALE_MARK, LOCALES, type Messages } from "@/lib/i18n"
 import { CHANGELOG, changelogIsFresh, changelogText } from "@/lib/changelog"
 import {
-  mergePlaces,
-  placesFile,
-  placesServerSnapshot,
-  placesSnapshot,
-  readPlacesFile,
-  replacePlaces,
-  subscribePlaces,
-  togglePlace,
-  type Favourite,
+  mergePlaces, placesFile, placesServerSnapshot, placesSnapshot, readPlacesFile,
+  replacePlaces, subscribePlaces, togglePlace, type Favourite,
 } from "@/lib/favourites"
 import type { BoardFault } from "@/lib/board-status"
 import { layerForIntel } from "@/lib/intel-focus"
@@ -61,24 +54,16 @@ type OpsHudProps = {
   onOpenChange: (open: boolean) => void
   onFocus: (focus: { id: string; coordinates: [number, number]; layer: WatchLayer | null; zoom?: number }) => void
   view: { lng: number; lat: number; zoom: number } | null
+  vanNews?: { id: string, title: string, description: string }[]
 }
 
 const TONE: Record<HarbourJourney["colour"], string> = {
-  red: "#FF5D73",
-  amber: "#FFC857",
-  green: "#3DDC97",
-  none: "#C9D2DC",
+  red: "#FF5D73", amber: "#FFC857", green: "#3DDC97", none: "#C9D2DC",
 }
 
-const BAR_KEY = {
-  CH: "cross",
-  EH: "eastern",
-  WH: "western",
-} as const
+const BAR_KEY = { CH: "cross", EH: "eastern", WH: "western" } as const
 
-function FreshDot() {
-  return <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-[#3DDC97]" />
-}
+function FreshDot() { return <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-[#3DDC97]" /> }
 
 const FOLD_MS = 280
 
@@ -88,17 +73,12 @@ function motionDelay(): number {
 }
 
 function UpdatesMark({ fresh, label }: { fresh: boolean; label: string }) {
-  return (
-    <>
-      {fresh ? <FreshDot /> : null}
-      {label}
-    </>
-  )
+  return <>{fresh ? <FreshDot /> : null}{label}</>
 }
 
 export function OpsHud(props: OpsHudProps) {
   const { locale, setLocale, messages: m } = useI18n()
-  const clock = useHongKongClock(locale)
+  const clock = useVancouverClock(locale)
   const prefs = useSyncExternalStore(subscribePreferences, preferenceSnapshot, preferenceServerSnapshot)
   const places = useSyncExternalStore(subscribePlaces, placesSnapshot, placesServerSnapshot)
   const tab = prefs.intelTab
@@ -112,34 +92,15 @@ export function OpsHud(props: OpsHudProps) {
   const [heldList, setHeldList] = useState<number | null>(null)
   const layoutEpoch = useRef(0)
   useEffect(() => {
-    if (open) {
-      setBoxOpen(true)
-      return
-    }
-    if (motionDelay() === 0) {
-      setBoxOpen(false)
-      setHeldList(null)
-      return
-    }
+    if (open) { setBoxOpen(true); return }
+    if (motionDelay() === 0) { setBoxOpen(false); setHeldList(null); return }
     const panel = document.querySelector<HTMLElement>(".intel-panel-fold")
     let finished = false
-    const finish = () => {
-      if (finished) return
-      finished = true
-      setBoxOpen(false)
-      setHeldList(null)
-    }
-    const onEnd = (event: TransitionEvent) => {
-      if (event.target !== panel || event.propertyName !== "grid-template-rows") return
-      finish()
-    }
+    const finish = () => { if (finished) return; finished = true; setBoxOpen(false); setHeldList(null) }
+    const onEnd = (event: TransitionEvent) => { if (event.target !== panel || event.propertyName !== "grid-template-rows") return; finish() }
     panel?.addEventListener("transitionend", onEnd)
     const id = window.setTimeout(finish, FOLD_MS + 40)
-    return () => {
-      finished = true
-      panel?.removeEventListener("transitionend", onEnd)
-      window.clearTimeout(id)
-    }
+    return () => { finished = true; panel?.removeEventListener("transitionend", onEnd); window.clearTimeout(id) }
   }, [open])
   const approachPoints = props.approaches?.ok ? props.approaches.points : []
   const nearest = nearestApproach(approachPoints, props.view)
@@ -153,29 +114,14 @@ export function OpsHud(props: OpsHudProps) {
   const live = Boolean(summary) && !props.trafficError
   const updatesFresh = changelogIsFresh(CHANGELOG)
   const board = intelBoard({
-    trafficError: props.trafficError,
-    traffic: props.traffic,
-    incidents: props.incidents,
-    incidentsError: props.incidentsError,
-    works: props.works,
-    controlPoints: props.controlPoints,
-    controlError: props.controlError,
-    approaches: props.approaches?.ok ? props.approaches.points : [],
-    approachesError: props.approachesError,
-    warnings: props.warnings,
-    warningsReady: props.warningsReady,
-    warningsError: props.warningsError,
-    conditions: props.conditions,
-    pictureError: props.pictureError,
-    mtrError: props.mtrError,
-    kmbError: props.kmbError,
-    lrtError: props.lrtError,
-    citybusError: props.citybusError,
-    gmbError: props.gmbError,
-    nlbError: props.nlbError,
-    mtrBusError: props.mtrBusError,
-    ferryError: props.ferryError,
-    mapError: props.mapLive ? null : m.mapFailed,
+    trafficError: props.trafficError, traffic: props.traffic, incidents: props.incidents,
+    incidentsError: props.incidentsError, works: props.works, controlPoints: props.controlPoints,
+    controlError: props.controlError, approaches: props.approaches?.ok ? props.approaches.points : [],
+    approachesError: props.approachesError, warnings: props.warnings, warningsReady: props.warningsReady,
+    warningsError: props.warningsError, conditions: props.conditions, pictureError: props.pictureError,
+    mtrError: props.mtrError, kmbError: props.kmbError, lrtError: props.lrtError,
+    citybusError: props.citybusError, gmbError: props.gmbError, nlbError: props.nlbError,
+    mtrBusError: props.mtrBusError, ferryError: props.ferryError, mapError: props.mapLive ? null : m.mapFailed,
     boardFaults: props.boardFaults,
   }, m)
   const intel = board[tab]
@@ -193,14 +139,8 @@ export function OpsHud(props: OpsHudProps) {
     const list = document.getElementById("harbour-intel-list")
     if (!next && list) {
       const height = Math.ceil(list.getBoundingClientRect().height)
-      if (height > 0) {
-        list.style.maxHeight = `${height}px`
-        setHeldList(height)
-      }
-    } else if (list) {
-      list.style.maxHeight = ""
-      setHeldList(null)
-    }
+      if (height > 0) { list.style.maxHeight = `${height}px`; setHeldList(height) }
+    } else if (list) { list.style.maxHeight = ""; setHeldList(null) }
     props.onOpenChange(next)
   }
   const show = (next: IntelTab, item: IntelItem | undefined) => {
@@ -277,10 +217,7 @@ export function OpsHud(props: OpsHudProps) {
     if (dock) observer.observe(dock)
     watchCorner()
     const map = document.querySelector(".maplibregl-map")
-    const mutations = new MutationObserver(() => {
-      watchCorner()
-      apply()
-    })
+    const mutations = new MutationObserver(() => { watchCorner(); apply() })
     if (map) mutations.observe(map, { childList: true, subtree: true })
     window.addEventListener("resize", apply)
     return () => {
@@ -301,25 +238,16 @@ export function OpsHud(props: OpsHudProps) {
   return (
     <div className="@container/hud pointer-events-none absolute inset-0 z-[5]">
       <Fold open={!barOpen} className="pointer-events-auto absolute top-2 left-2 z-[6] sm:hidden">
-        <button
-          type="button"
-          aria-expanded={false}
-          onClick={() => setBarOpen(true)}
-          className="inline-flex items-center gap-1.5 border border-cyan-200/30 bg-[#041018]/88 px-2 py-1 font-[family-name:var(--font-hud)] text-sm text-white"
-        >
-          {m.productName}
-          <FoldMark open={false} />
+        <button type="button" aria-expanded={false} onClick={() => setBarOpen(true)} className="inline-flex items-center gap-1.5 border border-cyan-200/30 bg-[#041018]/88 px-2 py-1 font-[family-name:var(--font-hud)] text-sm text-white">
+          {m.productName}<FoldMark open={false} />
         </button>
       </Fold>
       <Fold open={barOpen} live className="bar-fold pointer-events-auto absolute top-2 right-2 left-2 sm:top-3 sm:right-3 sm:left-3 lg:right-4 lg:left-16">
-      <header
-        data-map-chrome="top"
-        className="ops-bar flex flex-col items-stretch gap-1 border border-cyan-200/30 bg-[#041018]/80 px-1.5 py-1 shadow-[0_0_24px_rgba(34,211,238,0.08)] backdrop-blur-md sm:gap-1.5 sm:px-2 sm:py-1.5 @min-[64rem]/hud:flex-row @min-[64rem]/hud:items-center"
-      >
+      <header data-map-chrome="top" className="ops-bar flex flex-col items-stretch gap-1 border border-cyan-200/30 bg-[#041018]/80 px-1.5 py-1 shadow-[0_0_24px_rgba(34,211,238,0.08)] backdrop-blur-md sm:gap-1.5 sm:px-2 sm:py-1.5 @min-[64rem]/hud:flex-row @min-[64rem]/hud:items-center">
         <div className="flex shrink-0 items-center gap-1 sm:min-w-0 sm:flex-wrap sm:gap-3">
           <div className="min-w-0 max-w-14 sm:max-w-none">
-            <p className="hidden font-[family-name:var(--font-hud)] text-[0.62rem] tracking-[0.18em] text-cyan-200/80 uppercase sm:block">{m.productMark}</p>
-            <p className="truncate font-[family-name:var(--font-hud)] text-sm leading-tight text-white">{m.productName}</p>
+            <p className="hidden font-[family-name:var(--font-hud)] text-[0.62rem] tracking-[0.18em] text-cyan-200/80 uppercase sm:block">VANCOUVER</p>
+            <p className="truncate font-[family-name:var(--font-hud)] text-sm leading-tight text-white">Traffic Intelligence</p>
           </div>
           <div className="shrink-0">
             <p className="font-[family-name:var(--font-hud)] text-sm text-cyan-50 tabular-nums">{clock}</p>
@@ -329,137 +257,37 @@ export function OpsHud(props: OpsHudProps) {
               {props.mapLive ? "" : ` · ${m.mapOff}`}
             </p>
           </div>
-          <button
-            type="button"
-            aria-expanded={open && tab === "notes"}
-            onClick={() => show("notes", undefined)}
-            className="bar-chip hidden border-cyan-200/50 bg-cyan-300/10 text-cyan-50 sm:inline-flex"
-          >
-            <UpdatesMark fresh={updatesFresh} label={m.changelog} />
-          </button>
           <div className="flex items-stretch gap-1">
-          <PlaceFind
-            copy={m}
-            near={props.view}
-            onOpen={(place) => props.onFocus({
-              id: `find-${place.layer}-${place.id}`,
-              coordinates: place.coordinates,
-              layer: place.layer,
-              zoom: PLACE_FOCUS_ZOOM,
-            })}
-          />
-          <PlacesMenu
-            places={places}
-            copy={m}
-            onOpen={(place) => props.onFocus({
-              id: `place-${place.layer}-${place.id}`,
-              coordinates: place.coordinates,
-              layer: place.layer,
-              zoom: PLACE_FOCUS_ZOOM,
-            })}
-            onRemove={(place) => replacePlaces(togglePlace(places, place))}
-            onExport={() => downloadPlaces(places)}
-            onImport={(incoming) => replacePlaces(mergePlaces(places, incoming))}
-          />
+          <PlaceFind copy={m} near={props.view} onOpen={(place) => props.onFocus({ id: `find-${place.layer}-${place.id}`, coordinates: place.coordinates, layer: place.layer, zoom: PLACE_FOCUS_ZOOM })} />
+          <PlacesMenu places={places} copy={m} onOpen={(place) => props.onFocus({ id: `place-${place.layer}-${place.id}`, coordinates: place.coordinates, layer: place.layer, zoom: PLACE_FOCUS_ZOOM })} onRemove={(place) => replacePlaces(togglePlace(places, place))} onExport={() => downloadPlaces(places)} onImport={(incoming) => replacePlaces(mergePlaces(places, incoming))} />
           </div>
         </div>
         <div className="ops-bar-read flex min-w-0 flex-1 items-center gap-1 max-sm:w-full max-sm:flex-none">
           <div className="ops-times flex shrink-0 items-center gap-0.5 sm:gap-1.5">
-          {origin ? (["CH", "EH", "WH"] as const).map((code) => {
+          {false && origin ? (["CH", "EH", "WH"] as const).map((code) => {
             const crossing = crossings.find((item) => item.code === code)
             if (!crossing) {
-              return (
-                <Metric
-                  key={code}
-                  label={m[BAR_KEY[code]]}
-                  value={m.harbourMissing}
-                  tone={TONE.none}
-                  hint={m.harbourMissingHint}
-                  onClick={() => {
-                    if (origin) props.onFocus({ id: `harbour-origin-${origin.id}`, coordinates: origin.coordinates, layer: null })
-                  }}
-                />
-              )
+              return <Metric key={code} label={m[BAR_KEY[code]]} value={m.harbourMissing} tone={TONE.none} hint={m.harbourMissingHint} onClick={() => { if (origin) props.onFocus({ id: `harbour-origin-${origin.id}`, coordinates: origin.coordinates, layer: null }) }} />
             }
             const road = displayText(m.locale, crossing.fromTc, crossing.from)
             const compare = crossing.slower > 0 ? m.slowerBy(crossing.slower) : m.fastestHere
-            return (
-              <Metric
-                key={crossing.code}
-                label={m[BAR_KEY[crossing.code]]}
-                value={m.minutes(crossing.minutes)}
-                tone={TONE[crossing.colour]}
-                hint={`${m.approachHint(road)} ${compare}`}
-                onClick={() => props.onFocus({ id: `crossing-${crossing.code}`, coordinates: crossing.coordinates, layer: "tolls" })}
-              />
-            )
+            return <Metric key={crossing.code} label={m[BAR_KEY[crossing.code]]} value={m.minutes(crossing.minutes)} tone={TONE[crossing.colour]} hint={`${m.approachHint(road)} ${compare}`} onClick={() => props.onFocus({ id: `crossing-${crossing.code}`, coordinates: crossing.coordinates, layer: "tolls" })} />
           }) : null}
           </div>
           <div className="ops-phone-more">
-          {origin ? (
-            <OriginMenu
-              pinnedId={pinned?.id ?? null}
-              nearest={nearest}
-              island={islandPoints}
-              kowloon={kowloonPoints}
-              onChoose={(id) => {
-                setPinnedOrigin(id)
-                const point = id ? approachPoints.find((item) => item.id === id) : nearest
-                if (point) props.onFocus({ id: `harbour-origin-${point.id}`, coordinates: point.coordinates, layer: null })
-              }}
-            />
+          {false && origin ? (
+            <OriginMenu pinnedId={pinned?.id ?? null} nearest={nearest} island={islandPoints} kowloon={kowloonPoints} onChoose={(id) => { setPinnedOrigin(id); const point = id ? approachPoints.find((item) => item.id === id) : nearest; if (point) props.onFocus({ id: `harbour-origin-${point.id}`, coordinates: point.coordinates, layer: null }) }} />
           ) : null}
           <div className="ops-more bar-scroll flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto sm:gap-1.5">
-          {incidentCount > 0 ? (
-            <Metric
-              label={m.incident}
-              value={m.incidentsOpen(incidentCount)}
-              tone={TONE.red}
-              hint={m.incidentHint}
-              onClick={() => show("roads", firstIncident)}
-            />
-          ) : null}
-          <Metric
-            label={m.boundary}
-            value={halls.label}
-            tone={TONE[halls.tone]}
-            hint={m.boundaryHint}
-            onClick={() => show("boundary", worstHall)}
-          />
-          {weather ? (
-            <Metric
-              label={m.weather}
-              value={/^\d+°C/.test(weather.label) ? (weather.label.split(" · ")[0] ?? weather.label) : weather.label}
-              tone={TONE[weather.tone]}
-              hint={weather.label}
-              onClick={() => show("weather", undefined)}
-            />
-          ) : null}
-          <button
-            type="button"
-            aria-expanded={open && tab === "notes"}
-            onClick={() => show("notes", undefined)}
-            className="bar-chip border-cyan-200/50 bg-cyan-300/10 text-cyan-50 sm:hidden"
-          >
-            <UpdatesMark fresh={updatesFresh} label={m.changelog} />
+          {incidentCount > 0 ? <Metric label={m.incident} value={m.incidentsOpen(incidentCount)} tone={TONE.red} hint={m.incidentHint} onClick={() => show("roads", firstIncident)} /> : null}
+          <Metric label={m.boundary} value={halls.label} tone={TONE[halls.tone]} hint={m.boundaryHint} onClick={() => show("boundary", worstHall)} />
+          {weather ? <Metric label={m.weather} value={/^\d+°C/.test(weather.label) ? (weather.label.split(" · ")[0] ?? weather.label) : weather.label} tone={TONE[weather.tone]} hint={weather.label} onClick={() => show("weather", undefined)} /> : null}
+          </div>
+          <button type="button" aria-expanded={barOpen} onClick={() => setBarOpen(false)} className="ops-hide inline-flex shrink-0 items-center gap-1 border border-white/15 px-1.5 py-1 font-[family-name:var(--font-hud)] text-[0.65rem] text-cyan-50 sm:hidden">
+            {m.hide}<FoldMark open />
           </button>
           </div>
-          <button
-            type="button"
-            aria-expanded={barOpen}
-            onClick={() => setBarOpen(false)}
-            className="ops-hide inline-flex shrink-0 items-center gap-1 border border-white/15 px-1.5 py-1 font-[family-name:var(--font-hud)] text-[0.65rem] text-cyan-50 sm:hidden"
-          >
-            {m.hide}
-            <FoldMark open />
-          </button>
-          </div>
-          <button
-            type="button"
-            onClick={() => show("roads", worstRoad)}
-            className="ops-speed block shrink-0 border border-white/10 bg-black/30 px-0.5 py-1 text-left sm:px-2"
-            title={bandTitle(summary, m)}
-          >
+          <button type="button" onClick={() => show("roads", worstRoad)} className="ops-speed block shrink-0 border border-white/10 bg-black/30 px-0.5 py-1 text-left sm:px-2" title={bandTitle(summary, m)}>
             <p className="font-[family-name:var(--font-hud)] text-[0.58rem] tracking-[0.14em] text-cyan-100/80 uppercase">{m.network}</p>
             <div className="flex items-center gap-2">
               <p className="font-[family-name:var(--font-hud)] text-sm leading-none text-white tabular-nums sm:text-base">
@@ -476,30 +304,14 @@ export function OpsHud(props: OpsHudProps) {
           </button>
           <div className="ops-lang inline-flex shrink-0 border border-white/15 sm:hidden" role="group" aria-label={m.language}>
             {LOCALES.map((item) => (
-              <button
-                key={`narrow-${item}`}
-                type="button"
-                aria-pressed={locale === item}
-                onClick={() => setLocale(item)}
-                className={`px-1.5 py-1 font-[family-name:var(--font-hud)] text-[0.65rem] ${
-                  locale === item ? "bg-white/10 text-white" : "text-cyan-100/70"
-                }`}
-              >
+              <button key={`narrow-${item}`} type="button" aria-pressed={locale === item} onClick={() => setLocale(item)} className={`px-1.5 py-1 font-[family-name:var(--font-hud)] text-[0.65rem] ${locale === item ? "bg-white/10 text-white" : "text-cyan-100/70"}`}>
                 {LOCALE_MARK[item]}
               </button>
             ))}
           </div>
           <div className="hidden shrink-0 border border-white/15 sm:inline-flex" role="group" aria-label={m.language}>
             {LOCALES.map((item) => (
-              <button
-                key={item}
-                type="button"
-                aria-pressed={locale === item}
-                onClick={() => setLocale(item)}
-                className={`px-1.5 py-1 font-[family-name:var(--font-hud)] text-[0.65rem] ${
-                  locale === item ? "bg-white/10 text-white" : "text-cyan-100/70"
-                }`}
-              >
+              <button key={item} type="button" aria-pressed={locale === item} onClick={() => setLocale(item)} className={`px-1.5 py-1 font-[family-name:var(--font-hud)] text-[0.65rem] ${locale === item ? "bg-white/10 text-white" : "text-cyan-100/70"}`}>
                 {LOCALE_MARK[item]}
               </button>
             ))}
@@ -507,34 +319,14 @@ export function OpsHud(props: OpsHudProps) {
         </div>
       </header>
       </Fold>
-      <section
-        id="harbour-intel"
-        data-map-chrome="panel"
-        data-intel-open={boxOpen ? "true" : props.choice === null ? undefined : "false"}
-        className={
-          boxOpen
-            ? "pointer-events-auto absolute right-3 bottom-[var(--intel-bottom,6rem)] z-[6] w-[min(22rem,calc(100%-1.5rem))] border border-cyan-200/30 bg-[#041018]/88 shadow-[0_0_24px_rgba(34,211,238,0.08)] backdrop-blur-md sm:bottom-36 lg:right-4 lg:bottom-14"
-            : "pointer-events-auto absolute inset-x-0 bottom-[var(--marquee-bottom,3.5rem)] z-[6] border-t border-cyan-200/30 bg-[#041018]/88 shadow-[0_0_24px_rgba(34,211,238,0.08)] backdrop-blur-md sm:bottom-14"
-        }
-      >
+      <section id="harbour-intel" data-map-chrome="panel" data-intel-open={boxOpen ? "true" : props.choice === null ? undefined : "false"} className={boxOpen ? "pointer-events-auto absolute right-3 bottom-[var(--intel-bottom,6rem)] z-[6] w-[min(22rem,calc(100%-1.5rem))] border border-cyan-200/30 bg-[#041018]/88 shadow-[0_0_24px_rgba(34,211,238,0.08)] backdrop-blur-md sm:bottom-36 lg:right-4 lg:bottom-14" : "pointer-events-auto absolute inset-x-0 bottom-[var(--marquee-bottom,3.5rem)] z-[6] border-t border-cyan-200/30 bg-[#041018]/88 shadow-[0_0_24px_rgba(34,211,238,0.08)] backdrop-blur-md sm:bottom-14"}>
         <Fold open={!boxOpen} className="intel-strip-fold">
         <div className="intel-strip items-center gap-1 px-1.5 py-1">
-          <span className="shrink-0 font-[family-name:var(--font-hud)] text-[0.62rem] tracking-[0.14em] text-cyan-100/70 uppercase">
-            {tabLabel("ranked", m)}
-          </span>
+          <span className="shrink-0 font-[family-name:var(--font-hud)] text-[0.62rem] tracking-[0.14em] text-cyan-100/70 uppercase">{tabLabel("ranked", m)}</span>
           <IntelMarquee items={ranked} empty={emptyCopy("ranked", m)} seconds={marqueeSeconds} onFocus={props.onFocus} />
-          {urgentCount > 0 ? (
-            <span className="shrink-0 font-[family-name:var(--font-hud)] text-[0.65rem] tracking-[0.12em] text-[#FF5D73] uppercase">{urgentCount}</span>
-          ) : null}
-          <button
-            type="button"
-            aria-expanded={props.choice === true}
-            aria-controls="harbour-intel-list"
-            onClick={() => changeOpen(true)}
-            className="bar-chip ml-1 border-white/15 text-cyan-50 uppercase"
-          >
-            {m.intel}
-            <FoldMark open={false} />
+          {urgentCount > 0 ? <span className="shrink-0 font-[family-name:var(--font-hud)] text-[0.65rem] tracking-[0.12em] text-[#FF5D73] uppercase">{urgentCount}</span> : null}
+          <button type="button" aria-expanded={props.choice === true} aria-controls="harbour-intel-list" onClick={() => changeOpen(true)} className="bar-chip ml-1 border-white/15 text-cyan-50 uppercase">
+            {m.intel}<FoldMark open={false} />
           </button>
         </div>
         </Fold>
@@ -546,20 +338,7 @@ export function OpsHud(props: OpsHudProps) {
                 const selected = tab === id
                 const urgent = board[id].some((row) => row.urgent)
                 return (
-                  <button
-                    key={id}
-                    id={`intel-tab-${id}`}
-                    type="button"
-                    role="tab"
-                    aria-selected={selected}
-                    aria-controls="harbour-intel-list"
-                    tabIndex={selected ? 0 : -1}
-                    onClick={() => setTab(id)}
-                    onKeyDown={(event) => onTabKey(event, index, setTab)}
-                    className={`inline-flex shrink-0 items-center gap-1 px-1.5 py-1 font-[family-name:var(--font-hud)] text-[0.62rem] tracking-[0.08em] uppercase ${
-                      selected ? "border-b-2 border-cyan-200 text-white" : "border-b-2 border-transparent text-cyan-100/70"
-                    }`}
-                  >
+                  <button key={id} id={`intel-tab-${id}`} type="button" role="tab" aria-selected={selected} aria-controls="harbour-intel-list" tabIndex={selected ? 0 : -1} onClick={() => setTab(id)} onKeyDown={(event) => onTabKey(event, index, setTab)} className={`inline-flex shrink-0 items-center gap-1 px-1.5 py-1 font-[family-name:var(--font-hud)] text-[0.62rem] tracking-[0.08em] uppercase ${selected ? "border-b-2 border-cyan-200 text-white" : "border-b-2 border-transparent text-cyan-100/70"}`}>
                     {tabLabel(id, m)}
                     {id === "notes" && updatesFresh ? <FreshDot /> : null}
                     {urgent ? <span className="size-1 rounded-full bg-[#FF5D73]" /> : null}
@@ -567,36 +346,73 @@ export function OpsHud(props: OpsHudProps) {
                 )
               })}
             </div>
-            <button
-              type="button"
-              aria-expanded={open}
-              aria-controls="harbour-intel-list"
-              onClick={() => changeOpen(false)}
-              className="bar-chip ml-auto border-white/15 text-cyan-50 uppercase"
-            >
-              {m.hide}
-              <FoldMark open />
+            <button type="button" aria-expanded={open} aria-controls="harbour-intel-list" onClick={() => changeOpen(false)} className="bar-chip ml-auto border-white/15 text-cyan-50 uppercase">
+              {m.hide}<FoldMark open />
             </button>
           </div>
-          <div
-            id="harbour-intel-list"
-            role="tabpanel"
-            aria-labelledby={`intel-tab-${tab}`}
-            style={heldList ? { maxHeight: heldList } : undefined}
-            className="intel-scroll max-h-[min(26rem,46dvh,var(--intel-list-max,100dvh))] overflow-y-auto border-t border-white/10 px-2 py-2"
-          >
-            {tab === "notes" ? (
-              <ChangelogList />
-            ) : intel.length === 0 ? (
-              <p className="px-1 py-2 text-sm text-zinc-300">{emptyCopy(tab, m)}</p>
-            ) : (
-              <ol className="flex flex-col gap-1">
-                {intel.map((item) => (
-                  <li key={item.id}>
-                    <IntelRow item={item} onFocus={props.onFocus} />
-                  </li>
-                ))}
+          
+          {/* REPLACED LIST RENDERER WITH CONDITIONAL CHECKS */}
+          <div id="harbour-intel-list" role="tabpanel" aria-labelledby={`intel-tab-${tab}`} style={heldList ? { maxHeight: heldList } : undefined} className="intel-scroll max-h-[min(26rem,46dvh,var(--intel-list-max,100dvh))] overflow-y-auto border-t border-white/10 px-2 py-2">
+            
+            {/* 1. TransLink Alerts (Updates tab) */}
+            {tab === "notes" && (
+              <ol className="flex flex-col gap-2">
+                {(!props.vanNews || props.vanNews.length === 0) ? (
+                  <p className="p-2 text-sm text-zinc-400">No active transit alerts right now.</p>
+                ) : (
+                  props.vanNews.map((news) => (
+                    <li key={news.id} className="border border-white/10 bg-black/20 px-2 py-1.5">
+                      <p className="flex flex-wrap items-center gap-2 font-[family-name:var(--font-hud)] text-[0.62rem] tracking-[0.08em] text-cyan-100/80 uppercase">
+                        <span className="text-cyan-50">TransLink Alert</span>
+                      </p>
+                      <p className="mt-1 text-sm font-semibold leading-5 text-zinc-100">{news.title}</p>
+                      {news.description && <p className="mt-1 text-xs leading-4 text-zinc-300">{news.description}</p>}
+                    </li>
+                  ))
+                )}
               </ol>
+            )}
+
+            {/* 2. Weather Info */}
+            {tab === "weather" && (
+              <div className="flex flex-col gap-2 p-2">
+                <p className="text-sm text-zinc-100">Current Temperature: <strong>{props.conditions?.temperature ?? "N/A"}°C</strong></p>
+                <p className="text-sm text-zinc-100">Rainfall: <strong>{props.conditions?.rainfall ?? 0} mm</strong></p>
+                {props.warnings.length > 0 ? (
+                  props.warnings.map(w => <p key={w.code} className="text-sm text-yellow-300">⚠️ {w.name}</p>)
+                ) : (
+                  <p className="text-sm text-zinc-400">No active weather warnings.</p>
+                )}
+              </div>
+            )}
+
+            {/* 3. DriveBC Incidents (Roads tab) */}
+            {tab === "roads" && (
+              <ol className="flex flex-col gap-2">
+                {(!props.incidents || props.incidents.features.length === 0) ? (
+                  <p className="p-2 text-sm text-zinc-400">No active road incidents reported.</p>
+                ) : (
+                  props.incidents.features.map(f => (
+                    <li key={f.properties?.id || Math.random()} className="border border-white/10 bg-black/20 px-2 py-1.5">
+                      <p className="text-sm font-semibold text-zinc-100">{f.properties?.name}</p>
+                      <p className="text-xs text-zinc-400">{f.properties?.type} ({f.properties?.severity})</p>
+                    </li>
+                  ))
+                )}
+              </ol>
+            )}
+
+            {/* 4. Other Tabs (Default fallback) */}
+            {["ranked", "boundary", "systems"].includes(tab) && (
+              intel.length === 0 ? (
+                <p className="px-1 py-2 text-sm text-zinc-300">{emptyCopy(tab, m)}</p>
+              ) : (
+                <ol className="flex flex-col gap-1">
+                  {intel.map((item) => (
+                    <li key={item.id}><IntelRow item={item} onFocus={props.onFocus} /></li>
+                  ))}
+                </ol>
+              )
             )}
           </div>
         </div>
@@ -622,36 +438,22 @@ function PlaceFind(props: { copy: Messages; near: { lng: number; lat: number } |
   useEffect(() => {
     const needle = query.trim()
     latest.current = needle
-    if (needle.length < 2) {
-      setPlaces([])
-      return
-    }
+    if (needle.length < 2) { setPlaces([]); return }
     const asked = needle
     const handle = window.setTimeout(() => {
       const centre = nearRef.current
       const params = new URLSearchParams({ q: asked })
-      if (centre) {
-        params.set("lng", centre.lng.toFixed(3))
-        params.set("lat", centre.lat.toFixed(3))
-      }
-      void fetch(`/api/find?${params}`)
-        .then((response) => response.json())
-        .then((body: { ok?: boolean; places?: PlaceFindRow[] }) => {
-          if (latest.current !== asked) return
-          setPlaces(body.ok && Array.isArray(body.places) ? body.places : [])
-          setActive(0)
-        })
-        .catch(() => {
-          if (latest.current === asked) setPlaces([])
-        })
+      if (centre) { params.set("lng", centre.lng.toFixed(3)); params.set("lat", centre.lat.toFixed(3)) }
+      void fetch(`/api/find?${params}`).then((response) => response.json()).then((body: { ok?: boolean; places?: PlaceFindRow[] }) => {
+        if (latest.current !== asked) return
+        setPlaces(body.ok && Array.isArray(body.places) ? body.places : [])
+        setActive(0)
+      }).catch(() => { if (latest.current === asked) setPlaces([]) })
     }, 300)
     return () => window.clearTimeout(handle)
   }, [query])
   useEffect(() => {
-    if (!shown) {
-      setBox(null)
-      return
-    }
+    if (!shown) { setBox(null); return }
     const place = () => {
       const rect = rootRef.current?.getBoundingClientRect()
       if (!rect) return
@@ -673,116 +475,43 @@ function PlaceFind(props: { copy: Messages; near: { lng: number; lat: number } |
     document.addEventListener("mousedown", close)
     return () => document.removeEventListener("mousedown", close)
   }, [shown])
-  const choose = (place: PlaceFindRow) => {
-    props.onOpen(place)
-    setQuery("")
-    setPlaces([])
-    setOpen(false)
-  }
+  const choose = (place: PlaceFindRow) => { props.onOpen(place); setQuery(""); setPlaces([]); setOpen(false) }
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Escape") {
-      setOpen(false)
-      return
-    }
+    if (event.key === "Escape") { setOpen(false); return }
     if (!shown) return
-    if (event.key === "ArrowDown") {
-      event.preventDefault()
-      setActive((index) => (index + 1) % places.length)
-    } else if (event.key === "ArrowUp") {
-      event.preventDefault()
-      setActive((index) => (index - 1 + places.length) % places.length)
-    } else if (event.key === "Enter") {
-      const place = places[active]
-      if (!place) return
-      event.preventDefault()
-      choose(place)
-    }
+    if (event.key === "ArrowDown") { event.preventDefault(); setActive((index) => (index + 1) % places.length) }
+    else if (event.key === "ArrowUp") { event.preventDefault(); setActive((index) => (index - 1 + places.length) % places.length) }
+    else if (event.key === "Enter") { const place = places[active]; if (!place) return; event.preventDefault(); choose(place) }
   }
   const listId = "place-find-list"
   return (
     <div ref={rootRef} className="relative flex self-stretch">
-      <input
-        value={query}
-        placeholder={props.copy.placeFind}
-        aria-label={props.copy.placeFind}
-        role="combobox"
-        aria-autocomplete="list"
-        aria-expanded={shown}
-        aria-controls={listId}
-        aria-activedescendant={shown ? `${listId}-${active}` : undefined}
-        onChange={(event) => {
-          setQuery(event.target.value)
-          setOpen(true)
-        }}
-        onFocus={() => setOpen(true)}
-        onKeyDown={onKeyDown}
-        className="bar-chip place-find text-white placeholder:text-cyan-100/80"
-      />
-      {shown && box
-        ? createPortal(
-            <div
-              ref={listRef}
-              id={listId}
-              role="listbox"
-              aria-label={props.copy.placeFind}
-              className="fixed z-50 overflow-y-auto border border-cyan-200/30 bg-[#041018] text-sm text-white shadow-[0_0_24px_rgba(34,211,238,0.12)]"
-              style={{ top: box.top, left: box.left, width: box.width, maxHeight: box.maxHeight }}
-            >
-              {places.map((place, index) => {
-                const name = displayText(locale, place.nameTc, place.nameEn)
-                return (
-                  <button
-                    key={`${place.layer}-${place.id}`}
-                    id={`${listId}-${index}`}
-                    type="button"
-                    role="option"
-                    aria-selected={index === active}
-                    title={name}
-                    className={`flex w-full items-baseline gap-2 px-2 py-1.5 text-left ${index === active ? "bg-white/10" : ""} hover:bg-white/10`}
-                    onMouseDown={(event) => {
-                      event.preventDefault()
-                      choose(place)
-                    }}
-                    onMouseEnter={() => setActive(index)}
-                  >
-                    <span className="min-w-0 flex-1 truncate">{name}</span>
-                    <span className="shrink-0 font-[family-name:var(--font-hud)] text-[0.62rem] tracking-[0.08em] text-cyan-100/70">{layerLabel(place.layer, messages)}</span>
-                  </button>
-                )
-              })}
-            </div>,
-            document.body,
-          )
-        : null}
+      <input value={query} placeholder={props.copy.placeFind} aria-label={props.copy.placeFind} role="combobox" aria-autocomplete="list" aria-expanded={shown} aria-controls={listId} aria-activedescendant={shown ? `${listId}-${active}` : undefined} onChange={(event) => { setQuery(event.target.value); setOpen(true) }} onFocus={() => setOpen(true)} onKeyDown={onKeyDown} className="bar-chip place-find text-white placeholder:text-cyan-100/80" />
+      {shown && box ? createPortal(
+        <div ref={listRef} id={listId} role="listbox" aria-label={props.copy.placeFind} className="fixed z-50 overflow-y-auto border border-cyan-200/30 bg-[#041018] text-sm text-white shadow-[0_0_24px_rgba(34,211,238,0.12)]" style={{ top: box.top, left: box.left, width: box.width, maxHeight: box.maxHeight }}>
+          {places.map((place, index) => {
+            const name = displayText(locale, place.nameTc, place.nameEn)
+            return (
+              <button key={`${place.layer}-${place.id}`} id={`${listId}-${index}`} type="button" role="option" aria-selected={index === active} title={name} className={`flex w-full items-baseline gap-2 px-2 py-1.5 text-left ${index === active ? "bg-white/10" : ""} hover:bg-white/10`} onMouseDown={(event) => { event.preventDefault(); choose(place) }} onMouseEnter={() => setActive(index)}>
+                <span className="min-w-0 flex-1 truncate">{name}</span>
+                <span className="shrink-0 font-[family-name:var(--font-hud)] text-[0.62rem] tracking-[0.08em] text-cyan-100/70">{layerLabel(place.layer, messages)}</span>
+              </button>
+            )
+          })}
+        </div>, document.body) : null}
     </div>
   )
 }
 
-type PlaceFindRow = {
-  layer: WatchLayer
-  id: string
-  nameTc: string
-  nameEn: string
-  coordinates: [number, number]
-}
+type PlaceFindRow = { layer: WatchLayer; id: string; nameTc: string; nameEn: string; coordinates: [number, number] }
 
-function PlacesMenu(props: {
-  places: readonly Favourite[]
-  copy: Messages
-  onOpen: (place: Favourite) => void
-  onRemove: (place: Favourite) => void
-  onExport: () => void
-  onImport: (places: readonly Favourite[]) => void
-}) {
+function PlacesMenu(props: { places: readonly Favourite[]; copy: Messages; onOpen: (place: Favourite) => void; onRemove: (place: Favourite) => void; onExport: () => void; onImport: (places: readonly Favourite[]) => void }) {
   const [open, setOpen] = useState(false)
   const [box, setBox] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    if (!open) {
-      setBox(null)
-      return
-    }
+    if (!open) { setBox(null); return }
     const place = () => {
       const rect = rootRef.current?.getBoundingClientRect()
       if (!rect) return
@@ -801,53 +530,21 @@ function PlacesMenu(props: {
       const target = event.target as Node
       if (!rootRef.current?.contains(target) && !menuRef.current?.contains(target)) setOpen(false)
     }
-    const onKey = (event: globalThis.KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false)
-    }
+    const onKey = (event: globalThis.KeyboardEvent) => { if (event.key === "Escape") setOpen(false) }
     document.addEventListener("mousedown", close)
     document.addEventListener("keydown", onKey)
-    return () => {
-      document.removeEventListener("mousedown", close)
-      document.removeEventListener("keydown", onKey)
-    }
+    return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", onKey) }
   }, [open])
   return (
     <div ref={rootRef} className="relative flex shrink-0">
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-haspopup="dialog"
-        aria-label={props.copy.places}
-        onClick={() => setOpen((current) => !current)}
-        className={`bar-chip h-full ${open || props.places.length > 0 ? "border-[#e2b340]/70 text-[#e2b340]" : "border-white/15 text-cyan-50"}`}
-      >
+      <button type="button" aria-expanded={open} aria-haspopup="dialog" aria-label={props.copy.places} onClick={() => setOpen((current) => !current)} className={`bar-chip h-full ${open || props.places.length > 0 ? "border-[#e2b340]/70 text-[#e2b340]" : "border-white/15 text-cyan-50"}`}>
         <StarIcon filled={open || props.places.length > 0} className="size-[1em]" />
         {props.places.length > 0 ? <span className="tabular-nums">{props.places.length}</span> : null}
       </button>
-      {box
-        ? createPortal(
-            <div
-              ref={menuRef}
-              role="dialog"
-              aria-label={props.copy.places}
-              className="fixed z-50 border border-cyan-200/30 bg-[#041018] p-2 text-sm text-white shadow-[0_0_24px_rgba(34,211,238,0.12)]"
-              style={{ top: box.top, left: box.left, width: box.width, maxHeight: box.maxHeight, overflowY: "auto" }}
-            >
-              <PlaceList
-                places={props.places}
-                copy={props.copy}
-                onOpen={(place) => {
-                  props.onOpen(place)
-                  setOpen(false)
-                }}
-                onRemove={props.onRemove}
-                onExport={props.onExport}
-                onImport={props.onImport}
-              />
-            </div>,
-            document.body,
-          )
-        : null}
+      {box ? createPortal(
+        <div ref={menuRef} role="dialog" aria-label={props.copy.places} className="fixed z-50 border border-cyan-200/30 bg-[#041018] p-2 text-sm text-white shadow-[0_0_24px_rgba(34,211,238,0.12)]" style={{ top: box.top, left: box.left, width: box.width, maxHeight: box.maxHeight, overflowY: "auto" }}>
+          <PlaceList places={props.places} copy={props.copy} onOpen={(place) => { props.onOpen(place); setOpen(false) }} onRemove={props.onRemove} onExport={props.onExport} onImport={props.onImport} />
+        </div>, document.body) : null}
     </div>
   )
 }
@@ -855,24 +552,12 @@ function PlacesMenu(props: {
 function StarIcon(props: { filled: boolean; className?: string }) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" className={props.className ?? "size-4"}>
-      <path
-        d={STAR_PATH}
-        fill={props.filled ? "currentColor" : "none"}
-        stroke="currentColor"
-        strokeWidth={props.filled ? 0 : 1.6}
-        strokeLinejoin="round"
-      />
+      <path d={STAR_PATH} fill={props.filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth={props.filled ? 0 : 1.6} strokeLinejoin="round" />
     </svg>
   )
 }
 
-function OriginMenu(props: {
-  pinnedId: string | null
-  nearest: ApproachPoint | null
-  island: ApproachPoint[]
-  kowloon: ApproachPoint[]
-  onChoose: (id: string | null) => void
-}) {
+function OriginMenu(props: { pinnedId: string | null; nearest: ApproachPoint | null; island: ApproachPoint[]; kowloon: ApproachPoint[]; onChoose: (id: string | null) => void }) {
   const { locale, messages: m } = useI18n()
   const [open, setOpen] = useState(false)
   const [box, setBox] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null)
@@ -898,60 +583,31 @@ function OriginMenu(props: {
       const target = event.target as Node
       if (!rootRef.current?.contains(target) && !menuRef.current?.contains(target)) setOpen(false)
     }
-    const onKey = (event: globalThis.KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false)
-    }
+    const onKey = (event: globalThis.KeyboardEvent) => { if (event.key === "Escape") setOpen(false) }
     document.addEventListener("mousedown", close)
     document.addEventListener("keydown", onKey)
-    return () => {
-      document.removeEventListener("mousedown", close)
-      document.removeEventListener("keydown", onKey)
-    }
+    return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", onKey) }
   }, [open])
-  const chosen = props.pinnedId
-    ? [...props.island, ...props.kowloon].find((point) => point.id === props.pinnedId) ?? props.nearest
-    : props.nearest
+  const chosen = props.pinnedId ? [...props.island, ...props.kowloon].find((point) => point.id === props.pinnedId) ?? props.nearest : props.nearest
   const road = chosen ? displayText(locale, chosen.nameTc, chosen.name) : ""
-  const choose = (id: string | null) => {
-    props.onChoose(id)
-    setOpen(false)
-  }
+  const choose = (id: string | null) => { props.onChoose(id); setOpen(false) }
   return (
     <div ref={rootRef} className="ops-origin relative shrink-0">
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-haspopup="listbox"
-        aria-label={m.harbourFrom}
-        onClick={() => setOpen((current) => !current)}
-        className="block max-w-28 border border-white/10 bg-black/30 px-1 py-1 text-left sm:max-w-56 sm:px-2"
-      >
+      <button type="button" aria-expanded={open} aria-haspopup="listbox" aria-label={m.harbourFrom} onClick={() => setOpen((current) => !current)} className="block max-w-28 border border-white/10 bg-black/30 px-1 py-1 text-left sm:max-w-56 sm:px-2">
         <span className="block font-[family-name:var(--font-hud)] text-[0.58rem] tracking-[0.14em] text-cyan-100/80 uppercase">{props.pinnedId ? m.harbourFrom : m.harbourNear}</span>
         <span className="flex items-center gap-1">
-          <span className="truncate font-[family-name:var(--font-hud)] text-sm leading-none text-white sm:text-base">
-            {road}
-          </span>
+          <span className="truncate font-[family-name:var(--font-hud)] text-sm leading-none text-white sm:text-base">{road}</span>
           <FoldMark open={open} />
         </span>
       </button>
-      {box
-        ? createPortal(
-            <Fold
-              open={open}
-              className="fixed z-50 border border-cyan-200/30 bg-[#041018] text-sm text-white shadow-[0_0_24px_rgba(34,211,238,0.12)]"
-              style={{ top: box.top, left: box.left, width: box.width }}
-            >
-            <div ref={menuRef} role="listbox" aria-label={m.harbourFrom} className="overflow-y-auto p-1" style={{ maxHeight: box.maxHeight }}>
-              <OriginChoice selected={props.pinnedId == null} onChoose={() => choose(null)}>
-                {m.followMap(props.nearest ? displayText(locale, props.nearest.nameTc, props.nearest.name) : "")}
-              </OriginChoice>
-              <OriginList label={m.fromIsland} points={props.island} pinnedId={props.pinnedId} onChoose={choose} />
-              <OriginList label={m.fromKowloon} points={props.kowloon} pinnedId={props.pinnedId} onChoose={choose} />
-            </div>
-            </Fold>,
-            document.body,
-          )
-        : null}
+      {box ? createPortal(
+        <Fold open={open} className="fixed z-50 border border-cyan-200/30 bg-[#041018] text-sm text-white shadow-[0_0_24px_rgba(34,211,238,0.12)]" style={{ top: box.top, left: box.left, width: box.width }}>
+          <div ref={menuRef} role="listbox" aria-label={m.harbourFrom} className="overflow-y-auto p-1" style={{ maxHeight: box.maxHeight }}>
+            <OriginChoice selected={props.pinnedId == null} onChoose={() => choose(null)}>{m.followMap(props.nearest ? displayText(locale, props.nearest.nameTc, props.nearest.name) : "")}</OriginChoice>
+            <OriginList label={m.fromIsland} points={props.island} pinnedId={props.pinnedId} onChoose={choose} />
+            <OriginList label={m.fromKowloon} points={props.kowloon} pinnedId={props.pinnedId} onChoose={choose} />
+          </div>
+        </Fold>, document.body) : null}
     </div>
   )
 }
@@ -963,9 +619,7 @@ function OriginList(props: { label: string; points: ApproachPoint[]; pinnedId: s
     <div className="mt-1">
       <p className="px-2 py-1 font-[family-name:var(--font-hud)] text-[0.58rem] tracking-[0.14em] text-cyan-100/70 uppercase">{props.label}</p>
       {props.points.map((point) => (
-        <OriginChoice key={point.id} selected={props.pinnedId === point.id} onChoose={() => props.onChoose(point.id)}>
-          {displayText(locale, point.nameTc, point.name)}
-        </OriginChoice>
+        <OriginChoice key={point.id} selected={props.pinnedId === point.id} onChoose={() => props.onChoose(point.id)}>{displayText(locale, point.nameTc, point.name)}</OriginChoice>
       ))}
     </div>
   )
@@ -973,41 +627,22 @@ function OriginList(props: { label: string; points: ApproachPoint[]; pinnedId: s
 
 function OriginChoice(props: { selected: boolean; onChoose: () => void; children: string }) {
   return (
-    <button
-      type="button"
-      role="option"
-      aria-selected={props.selected}
-      onClick={props.onChoose}
-      className={`block w-full px-2 py-1.5 text-left whitespace-nowrap text-white hover:bg-white/10 ${props.selected ? "bg-white/10" : ""}`}
-    >
-      {props.children}
-    </button>
+    <button type="button" role="option" aria-selected={props.selected} onClick={props.onChoose} className={`block w-full px-2 py-1.5 text-left whitespace-nowrap text-white hover:bg-white/10 ${props.selected ? "bg-white/10" : ""}`}>{props.children}</button>
   )
 }
 
 function Metric(props: { label: string; value: string; tone: string; hint?: string; className?: string; onClick: () => void }) {
   return (
-    <button
-      type="button"
-      onClick={props.onClick}
-      title={props.hint}
-      className={`block shrink-0 border border-white/10 bg-black/30 px-0.5 py-1 text-left sm:px-2 ${props.className ?? ""}`}
-    >
+    <button type="button" onClick={props.onClick} title={props.hint} className={`block shrink-0 border border-white/10 bg-black/30 px-0.5 py-1 text-left sm:px-2 ${props.className ?? ""}`}>
       <p className="font-[family-name:var(--font-hud)] text-[0.58rem] tracking-[0.14em] text-cyan-100/80 uppercase">{props.label}</p>
-      <p className="font-[family-name:var(--font-hud)] text-sm leading-none whitespace-nowrap tabular-nums sm:text-base" style={{ color: props.tone }}>
-        {props.value}
-      </p>
+      <p className="font-[family-name:var(--font-hud)] text-sm leading-none whitespace-nowrap tabular-nums sm:text-base" style={{ color: props.tone }}>{props.value}</p>
     </button>
   )
 }
 
 function ChangelogList() {
   const { locale, messages: m } = useI18n()
-  const kind = {
-    added: m.changelogAdded,
-    fixed: m.changelogFixed,
-    improved: m.changelogImproved,
-  }
+  const kind = { added: m.changelogAdded, fixed: m.changelogFixed, improved: m.changelogImproved }
   return (
     <ol className="flex flex-col gap-2">
       {CHANGELOG.map((entry) => (
@@ -1024,32 +659,18 @@ function ChangelogList() {
 }
 
 function changelogDay(date: string, locale: ReturnType<typeof useI18n>["locale"]): string {
-  return new Intl.DateTimeFormat(locale, {
-    timeZone: "Asia/Hong_Kong",
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  }).format(Date.parse(`${date}T00:00:00+08:00`))
+  return new Intl.DateTimeFormat(locale, { timeZone: "America/Vancouver", year: "numeric", month: "short", day: "numeric" }).format(Date.parse(`${date}T00:00:00-08:00`))
 }
 
 function tabLabel(id: IntelTab, m: Messages): string {
   switch (id) {
-    case "ranked":
-      return m.ranked
-    case "roads":
-      return m.roads
-    case "boundary":
-      return m.boundary
-    case "weather":
-      return m.weather
-    case "systems":
-      return m.systems
-    case "notes":
-      return m.changelog
-    default: {
-      const exhaustive: never = id
-      return exhaustive
-    }
+    case "ranked": return m.ranked
+    case "roads": return m.roads
+    case "boundary": return m.boundary
+    case "weather": return m.weather
+    case "systems": return m.systems
+    case "notes": return m.changelog
+    default: { const exhaustive: never = id; return exhaustive }
   }
 }
 
@@ -1091,17 +712,7 @@ function IntelMarquee(props: { items: IntelItem[]; empty: string; seconds: numbe
         {[0, 1].map((copy) => (
           <div key={copy} className="intel-marquee-copy flex shrink-0 items-center" aria-hidden={copy === 1}>
             {items.map((item) => (
-              <button
-                key={`${copy}-${item.id}`}
-                type="button"
-                tabIndex={copy === 1 ? -1 : 0}
-                disabled={item.coordinates == null}
-                onClick={() => {
-                  if (!item.coordinates) return
-                  props.onFocus({ id: item.id, coordinates: item.coordinates, layer: layerForIntel(item.kind) })
-                }}
-                className="mx-5 whitespace-nowrap font-[family-name:var(--font-hud)] text-[0.72rem] text-cyan-50 disabled:cursor-default"
-              >
+              <button key={`${copy}-${item.id}`} type="button" tabIndex={copy === 1 ? -1 : 0} disabled={item.coordinates == null} onClick={() => { if (!item.coordinates) return; props.onFocus({ id: item.id, coordinates: item.coordinates, layer: layerForIntel(item.kind) }) }} className="mx-5 whitespace-nowrap font-[family-name:var(--font-hud)] text-[0.72rem] text-cyan-50 disabled:cursor-default">
                 <span style={{ color: TONE[item.tone] }}>{item.label}</span>
                 <span className="text-white"> · {item.title}</span>
                 {item.detail ? <span className="text-zinc-300"> — {item.detail}</span> : null}
@@ -1117,15 +728,7 @@ function IntelMarquee(props: { items: IntelItem[]; empty: string; seconds: numbe
 function IntelRow(props: { item: IntelItem; onFocus: OpsHudProps["onFocus"] }) {
   const { item } = props
   return (
-    <button
-      type="button"
-      disabled={item.coordinates == null}
-      onClick={() => {
-        if (!item.coordinates) return
-        props.onFocus({ id: item.id, coordinates: item.coordinates, layer: layerForIntel(item.kind) })
-      }}
-      className="flex w-full items-start gap-2 px-1 py-1 text-left enabled:hover:bg-white/5 disabled:cursor-default"
-    >
+    <button type="button" disabled={item.coordinates == null} onClick={() => { if (!item.coordinates) return; props.onFocus({ id: item.id, coordinates: item.coordinates, layer: layerForIntel(item.kind) }) }} className="flex w-full items-start gap-2 px-1 py-1 text-left enabled:hover:bg-white/5 disabled:cursor-default">
       <span className="mt-1 size-1.5 shrink-0 rounded-full" style={{ background: TONE[item.tone] }} />
       <span className="min-w-0">
         <span className="block font-[family-name:var(--font-hud)] text-[0.62rem] tracking-[0.14em] text-cyan-100/80 uppercase">{item.label}</span>
@@ -1137,57 +740,29 @@ function IntelRow(props: { item: IntelItem; onFocus: OpsHudProps["onFocus"] }) {
 }
 
 function quietItem(title: string, label: string): IntelItem {
-  return {
-    id: "intel-clear",
-    kind: "slow",
-    score: 0,
-    urgent: false,
-    label,
-    title,
-    detail: "",
-    tone: "green",
-    coordinates: null,
-  }
+  return { id: "intel-clear", kind: "slow", score: 0, urgent: false, label, title, detail: "", tone: "green", coordinates: null }
 }
 
 const CLOCK_PLACEHOLDER = "--:--:--"
 
 function emptyCopy(tab: IntelTab, m: ReturnType<typeof useI18n>["messages"]): string {
   switch (tab) {
-    case "ranked":
-      return m.emptyRanked
-    case "roads":
-      return m.emptyRoads
-    case "boundary":
-      return m.emptyBoundary
-    case "weather":
-      return m.emptyWeather
-    case "systems":
-      return m.emptySystems
-    case "notes":
-      return m.changelog
-    default: {
-      const exhaustive: never = tab
-      return exhaustive
-    }
+    case "ranked": return m.emptyRanked
+    case "roads": return m.emptyRoads
+    case "boundary": return m.emptyBoundary
+    case "weather": return m.emptyWeather
+    case "systems": return m.emptySystems
+    case "notes": return m.changelog
+    default: { const exhaustive: never = tab; return exhaustive }
   }
 }
 
-function PlaceList(props: {
-  places: readonly Favourite[]
-  copy: Messages
-  onOpen: (place: Favourite) => void
-  onRemove: (place: Favourite) => void
-  onExport: () => void
-  onImport: (places: readonly Favourite[]) => void
-}) {
+function PlaceList(props: { places: readonly Favourite[]; copy: Messages; onOpen: (place: Favourite) => void; onRemove: (place: Favourite) => void; onExport: () => void; onImport: (places: readonly Favourite[]) => void }) {
   const input = useRef<HTMLInputElement>(null)
   const [importFault, setImportFault] = useState(false)
   return (
     <div className="flex flex-col gap-2">
-      {props.places.length === 0 ? (
-        <p className="px-1 py-2 text-sm text-zinc-300">{props.copy.placesEmpty}</p>
-      ) : (
+      {props.places.length === 0 ? <p className="px-1 py-2 text-sm text-zinc-300">{props.copy.placesEmpty}</p> : (
         <ol className="flex flex-col">
           {props.places.map((place) => (
             <li key={`${place.layer}-${place.id}`} className="flex items-start gap-2 border-t border-white/10 first:border-t-0">
@@ -1195,9 +770,7 @@ function PlaceList(props: {
                 <span className="block text-sm leading-5 text-white">{displayText(props.copy.locale, place.nameTc, place.nameEn)}</span>
                 <span className="block text-xs leading-4 text-cyan-100/70">{layerLabel(place.layer, props.copy)}</span>
               </button>
-              <button type="button" aria-label={props.copy.starred} aria-pressed="true" onClick={() => props.onRemove(place)} className="mt-1 grid size-7 shrink-0 place-items-center text-[#e2b340]">
-                <StarIcon filled />
-              </button>
+              <button type="button" aria-label={props.copy.starred} aria-pressed="true" onClick={() => props.onRemove(place)} className="mt-1 grid size-7 shrink-0 place-items-center text-[#e2b340]"><StarIcon filled /></button>
             </li>
           ))}
         </ol>
@@ -1205,26 +778,17 @@ function PlaceList(props: {
       <div className="flex gap-1 border-t border-white/10 pt-2">
         <button type="button" onClick={props.onExport} className="px-1 py-1 text-xs text-cyan-100/80">{props.copy.placesExport}</button>
         <button type="button" onClick={() => input.current?.click()} className="px-1 py-1 text-xs text-cyan-100/80">{props.copy.placesImport}</button>
-        <input
-          ref={input}
-          type="file"
-          accept="application/json,.json"
-          className="hidden"
-          onChange={(event) => {
-            const file = event.target.files?.[0]
-            event.target.value = ""
-            if (!file) return
-            void file.text().then((raw) => {
-              const incoming = readPlacesFile(raw)
-              if (!incoming.ok) {
-                setImportFault(true)
-                return
-              }
-              setImportFault(false)
-              props.onImport(incoming.places)
-            }).catch(() => setImportFault(true))
-          }}
-        />
+        <input ref={input} type="file" accept="application/json,.json" className="hidden" onChange={(event) => {
+          const file = event.target.files?.[0]
+          event.target.value = ""
+          if (!file) return
+          void file.text().then((raw) => {
+            const incoming = readPlacesFile(raw)
+            if (!incoming.ok) { setImportFault(true); return }
+            setImportFault(false)
+            props.onImport(incoming.places)
+          }).catch(() => setImportFault(true))
+        }} />
       </div>
       {importFault ? <p className="px-1 text-xs text-[#FF5D73]">{props.copy.placesImportFailed}</p> : null}
     </div>
@@ -1235,12 +799,12 @@ function downloadPlaces(places: readonly Favourite[]): void {
   const href = URL.createObjectURL(new Blob([placesFile(places)], { type: "application/json" }))
   const link = document.createElement("a")
   link.href = href
-  link.download = "hk-traffic-places.json"
+  link.download = "vancouver-traffic-places.json"
   link.click()
   window.setTimeout(() => URL.revokeObjectURL(href), 5000)
 }
 
-function useHongKongClock(locale: ReturnType<typeof useI18n>["locale"]): string {
+function useVancouverClock(locale: ReturnType<typeof useI18n>["locale"]): string {
   const [now, setNow] = useState<Date | null>(null)
   useEffect(() => {
     const tick = () => setNow(new Date())

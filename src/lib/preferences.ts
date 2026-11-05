@@ -1,29 +1,14 @@
-import { localeOf, type Locale } from "./i18n.ts"
-import type { Basemap, WatchLayer, WatchLayers } from "./types.ts"
+export type Locale = "en" | "zh-HK" | "zh-CN"
+export type Basemap = "satellite" | "street" | "buildings"
+export type WatchLayer = "speed" | "cameras" | "speedcam" | "works" | "tolls" | "incidents" | "control" | "mtr" | "lrt" | "kmb" | "citybus" | "gmb" | "nlb" | "mtrbus" | "ferry" | "parking" | "motorcycle" | "kerb" | "meter" | "charger"
+export type WatchLayers = Record<WatchLayer, boolean>
 
 const KEY = "hk-traffic-preferences"
 
 const LAYER_IDS: readonly WatchLayer[] = [
-  "speed",
-  "cameras",
-  "speedcam",
-  "works",
-  "tolls",
-  "incidents",
-  "control",
-  "mtr",
-  "lrt",
-  "kmb",
-  "citybus",
-  "gmb",
-  "nlb",
-  "mtrbus",
-  "ferry",
-  "parking",
-  "motorcycle",
-  "kerb",
-  "meter",
-  "charger",
+  "speed", "cameras", "speedcam", "works", "tolls", "incidents", "control",
+  "mtr", "lrt", "kmb", "citybus", "gmb", "nlb", "mtrbus", "ferry",
+  "parking", "motorcycle", "kerb", "meter", "charger"
 ]
 
 const TABS = ["ranked", "roads", "boundary", "weather", "systems", "notes"] as const
@@ -43,28 +28,28 @@ export type Preferences = {
 }
 
 export const PREFERENCE_DEFAULTS: Preferences = {
-  locale: "zh-HK",
+  locale: "en", // Default to English
   layers: {
     speed: true,
-    cameras: true,
-    speedcam: true,
+    cameras: false,      // HK Only
+    speedcam: false,     // HK Only
     works: true,
-    tolls: true,
+    tolls: false,        // HK Only
     incidents: true,
-    control: true,
-    mtr: true,
-    lrt: true,
-    kmb: true,
-    citybus: true,
-    gmb: true,
-    nlb: true,
-    mtrbus: true,
-    ferry: true,
-    parking: true,
-    motorcycle: true,
-    kerb: false,
-    meter: true,
-    charger: false,
+    control: false,      // HK Only
+    mtr: true,           // We are using this for TransLink!
+    lrt: false,          // HK Only
+    kmb: false,          // HK Only
+    citybus: false,      // HK Only
+    gmb: false,          // HK Only
+    nlb: false,          // HK Only
+    mtrbus: false,       // HK Only
+    ferry: false,        // HK Only
+    parking: false,      // HK Only
+    motorcycle: false,   // HK Only
+    kerb: false,         // HK Only
+    meter: false,        // HK Only
+    charger: false,      // HK Only
   },
   basemap: "satellite",
   ground: "satellite",
@@ -96,8 +81,14 @@ export function readPreferences(raw: string | null, fallback: Preferences = PREF
   if (typeof parsed !== "object" || parsed === null) return fallback
   const row = parsed as Record<string, unknown>
   const ground = row.ground === "street" || row.ground === "satellite" ? row.ground : fallback.ground
+  
+  // Simplified locale reading for the new setup
+  const locale: Locale = (typeof row.locale === "string" && ["en", "zh-HK", "zh-CN"].includes(row.locale)) 
+    ? row.locale as Locale 
+    : fallback.locale
+
   return {
-    locale: localeOf(typeof row.locale === "string" ? row.locale : fallback.locale),
+    locale,
     layers: readLayers(row.layers, fallback.layers),
     basemap: isBasemap(row.basemap) ? row.basemap : fallback.basemap,
     ground,
